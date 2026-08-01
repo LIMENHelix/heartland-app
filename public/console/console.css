@@ -631,3 +631,14 @@ body {
   background: #EEF6F0; border: 1px solid #BFDCC9; color: #1F6340;
   font-size: .78rem; font-weight: 700;
 }
+
+/* The lion, the same photograph the patient app and the phone's home screen
+   use, so the console reads as the same product rather than a separate tool. */
+.mark {
+  display: block; border-radius: 7px; object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(212, 178, 102, .55);
+}
+.mark--lg {
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(212, 178, 102, .5), 0 8px 22px rgba(33, 49, 59, .22);
+}
