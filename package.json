@@ -11,7 +11,12 @@
     "icons": "node tools/make-icons.js",
     "articles": "node scripts/articles.js",
     "articles:topics": "node scripts/articles-topics.js",
-    "articles:rebalance": "node scripts/articles-rebalance.js"
+    "articles:rebalance": "node scripts/articles-rebalance.js",
+    "test:accounts": "node scripts/test/accounts.js",
+    "test:checkin": "node scripts/test/checkin.js",
+    "test:team": "node scripts/test/team.js",
+    "test:reminder": "node scripts/test/reminder.js",
+    "test:password": "node scripts/test/password.js"
   },
   "dependencies": {
     "pg": "^8.13.1"
