@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heartland</title>
+<meta name="description" content="Your direct line to your care team at Heartland Men's Health.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#21313B">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Heartland">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Raleway:wght@700;800&family=PT+Sans:ital,wght@0,400;0,700;1,400&family=Bai+Jamjuree:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ GATE: not enrolled yet ============ -->
+<div class="setup" id="gate" hidden>
+  <div class="setup__inner">
+    <div class="brandmark" aria-hidden="true">
+      <img class="mark mark--lg" src="img/mark.png" width="56" height="56" alt="">
+    </div>
+    <div id="gateBody"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app" hidden>
+
+  <header class="topbar">
+    <div class="topbar__brand">
+      <img class="mark" src="img/mark.png" width="30" height="30" alt="">
+      <span>Heartland</span>
+    </div>
+  </header>
+
+<nav class="sidenav" aria-label="Sections">
+    <button class="tab is-active" data-screen="home" aria-current="page">
+      <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M4 9.4 11 4l7 5.4V18a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="tab" data-screen="messages">
+      <span class="tab__wrap">
+        <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M3.5 6.4a1.9 1.9 0 0 1 1.9-1.9h11.2a1.9 1.9 0 0 1 1.9 1.9v9.2a1.9 1.9 0 0 1-1.9 1.9H5.4a1.9 1.9 0 0 1-1.9-1.9Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m4 6.6 7 4.9 7-4.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="tab__dot" id="msgDotSide" hidden></span>
+      </span>
+      <span>Messages</span>
+    </button>
+    <button class="tab" data-screen="you">
+      <span class="tab__wrap">
+        <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M2.6 11.4h3.1l1.9-4.9 2.8 9.4 2.4-6.3 1.4 1.8h5.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="tab__dot" id="youDotSide" hidden></span>
+      </span>
+      <span>You</span>
+    </button>
+    <button class="tab" data-screen="learn">
+      <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M4 4.6h5.2c1 0 1.8.8 1.8 1.8v11c0-1-.8-1.8-1.8-1.8H4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M18 4.6h-5.2c-1 0-1.8.8-1.8 1.8v11c0-1 .8-1.8 1.8-1.8H18Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span>Learn</span>
+    </button>
+    <button class="tab" data-screen="clinic">
+      <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M11 19s6.2-4.6 6.2-9.3A6.2 6.2 0 0 0 4.8 9.7C4.8 14.4 11 19 11 19Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="11" cy="9.5" r="2.3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+      <span>Clinic</span>
+    </button>
+  </nav>
+
+  <main id="main">
+    <section class="screen" id="screen-home" aria-labelledby="home-h">
+      <h1 class="sronly" id="home-h">Home</h1>
+      <div id="homeBody"></div>
+    </section>
+
+    <section class="screen" id="screen-messages" hidden aria-labelledby="msg-h">
+      <p class="eyebrow">From your care team</p>
+      <h1 class="h1" id="msg-h">Messages</h1>
+      <div id="messagesBody"></div>
+    </section>
+
+    <section class="screen" id="screen-you" hidden aria-labelledby="you-h">
+      <p class="eyebrow">Your record</p>
+      <h1 class="h1" id="you-h">How you're doing</h1>
+      <div id="youBody"></div>
+    </section>
+
+    <section class="screen" id="screen-learn" hidden aria-labelledby="learn-h">
+      <p class="eyebrow">Reading</p>
+      <h1 class="h1" id="learn-h">Learn</h1>
+      <div id="learnBody"></div>
+    </section>
+
+    <section class="screen" id="screen-clinic" hidden aria-labelledby="clinic-h">
+      <p class="eyebrow">Heartland Men's Health</p>
+      <h1 class="h1" id="clinic-h">Clinic</h1>
+      <div id="clinicBody"></div>
+    </section>
+  </main>
+
+  <nav class="tabbar" aria-label="Sections">
+    <button class="tab is-active" data-screen="home" aria-current="page">
+      <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M4 9.4 11 4l7 5.4V18a1 1 0 0 1-1 1h-4v-5H9v5H5a1 1 0 0 1-1-1Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="tab" data-screen="messages">
+      <span class="tab__wrap">
+        <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M3.5 6.4a1.9 1.9 0 0 1 1.9-1.9h11.2a1.9 1.9 0 0 1 1.9 1.9v9.2a1.9 1.9 0 0 1-1.9 1.9H5.4a1.9 1.9 0 0 1-1.9-1.9Z" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="m4 6.6 7 4.9 7-4.9" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="tab__dot" id="msgDot" hidden></span>
+      </span>
+      <span>Messages</span>
+    </button>
+    <button class="tab" data-screen="you">
+      <span class="tab__wrap">
+        <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M2.6 11.4h3.1l1.9-4.9 2.8 9.4 2.4-6.3 1.4 1.8h5.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="tab__dot" id="youDot" hidden></span>
+      </span>
+      <span>You</span>
+    </button>
+    <button class="tab" data-screen="learn">
+      <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M4 4.6h5.2c1 0 1.8.8 1.8 1.8v11c0-1-.8-1.8-1.8-1.8H4Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M18 4.6h-5.2c-1 0-1.8.8-1.8 1.8v11c0-1 .8-1.8 1.8-1.8H18Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
+      <span>Learn</span>
+    </button>
+    <button class="tab" data-screen="clinic">
+      <svg viewBox="0 0 22 22" width="21" height="21" aria-hidden="true"><path d="M11 19s6.2-4.6 6.2-9.3A6.2 6.2 0 0 0 4.8 9.7C4.8 14.4 11 19 11 19Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><circle cx="11" cy="9.5" r="2.3" fill="none" stroke="currentColor" stroke-width="1.7"/></svg>
+      <span>Clinic</span>
+    </button>
+  </nav>
+</div>
+
+<!-- ============ SHEET ============ -->
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet__scrim" data-close></div>
+  <div class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet__grip" aria-hidden="true"></div>
+    <div class="sheet__head">
+      <h2 id="sheetTitle" class="h2"></h2>
+      <button class="iconbtn" data-close aria-label="Close">
+        <svg viewBox="0 0 20 20" width="19" height="19" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="sheet__body" id="sheetBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Dependencies — reinstallable from package-lock.json, and enormous.
+node_modules/
+
+# Credentials. .env.local holds the Neon database password and the Vercel
+# OIDC token. If this ever reaches a remote, rotate the database password.
+.env
+.env.local
+.env*.local
+.env.*.local
+
+# Vercel's local link + build cache
+.vercel/
+.vercel
+
+# Logs and crash output
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# OS and editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+*~

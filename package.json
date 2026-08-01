@@ -1,0 +1,22 @@
+{
+  "name": "heartland-retention",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Coordinator console + patient app for Heartland Men's Health",
+  "scripts": {
+    "dev": "node scripts/dev-server.js",
+    "seed": "node scripts/seed.js",
+    "migrate": "node scripts/migrate.js",
+    "selftest": "node lib/push.js --selftest",
+    "icons": "node tools/make-icons.js",
+    "articles": "node scripts/articles.js",
+    "articles:topics": "node scripts/articles-topics.js",
+    "articles:rebalance": "node scripts/articles-rebalance.js"
+  },
+  "dependencies": {
+    "pg": "^8.13.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

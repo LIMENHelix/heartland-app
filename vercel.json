@@ -1,0 +1,112 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/app/",
+      "permanent": false
+    },
+    {
+      "source": "/console",
+      "destination": "/console/",
+      "permanent": false
+    },
+    {
+      "source": "/app",
+      "destination": "/app/",
+      "permanent": false
+    },
+    {
+      "source": "/pricing",
+      "destination": "/pricing/",
+      "permanent": false
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/console/",
+      "destination": "/console/index.html"
+    },
+    {
+      "source": "/app/",
+      "destination": "/app/index.html"
+    },
+    {
+      "source": "/pricing/",
+      "destination": "/pricing/index.html"
+    },
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index"
+    }
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Strict-Transport-Security",
+          "value": "max-age=31536000; includeSubDomains"
+        }
+      ]
+    },
+    {
+      "source": "/console/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/app/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/app/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/app/"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/checkin-reminder",
+      "schedule": "30 1 * * *"
+    }
+  ]
+}
