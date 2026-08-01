@@ -430,6 +430,39 @@ const routes = {
     send(res, 200, { ok: true, signedOutElsewhere: gone.length });
   },
 
+  /* Counts only, so an open console can check for new work every half minute
+     without running the seven queries a full load costs. A hundred consoles
+     polling the real endpoints would be a hundred times that, every 30s, all
+     day. This is four COUNT(*)s. */
+  "GET /api/admin/pulse": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const scope = panelScope(u, url(req).searchParams.get("panel"));
+    const pWhere = scope.sql ? scope.sql.replace(" WHERE ", " AND p.") : "";
+
+    const questions = await db.one(`
+      SELECT COUNT(*)::int AS n FROM messages m
+        JOIN patients p ON p.id = m.from_patient_id
+       WHERE m.direction = 'in'
+         AND NOT EXISTS (SELECT 1 FROM messages r
+                          WHERE r.reply_to = m.id AND r.direction = 'out')` + pWhere,
+      scope.vals);
+    const checkins = await db.one(`
+      SELECT COUNT(*)::int AS n FROM checkins c
+        JOIN patients p ON p.id = c.patient_id
+       WHERE c.level <> 'ok' AND c.seen_at IS NULL` + pWhere, scope.vals);
+    const signups = await db.one(
+      "SELECT COUNT(*)::int AS n FROM patients WHERE account_status = 'pending'");
+    const latest = await db.one(`
+      SELECT MAX(m.sent_at) AS t FROM messages m
+        JOIN patients p ON p.id = m.from_patient_id
+       WHERE m.direction = 'in'` + pWhere, scope.vals);
+
+    send(res, 200, {
+      questions: questions.n, checkins: checkins.n, signups: signups.n,
+      latest: db.n(latest && latest.t)
+    });
+  },
+
   /* ---------------- retention board ---------------- */
 
   "GET /api/admin/board": async function (req, res) {

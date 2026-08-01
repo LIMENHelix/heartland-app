@@ -148,6 +148,9 @@ async function boot() {
     if (teamBtn) teamBtn.hidden = !isAdmin();
     await refresh();
     render();
+    PULSE = null;
+    await pulse(true);
+    startPulse();
   } catch (e) {
     showLogin();
   }
@@ -171,10 +174,77 @@ $("#loginForm").addEventListener("submit", async function (e) {
 });
 
 $("#logout").addEventListener("click", async function () {
+  stopPulse();
   await api("/api/admin/logout", {});
   ME = null;
   showLogin();
 });
+
+
+/* ==========================================================================
+   Watching for new work.
+
+   The console used to load once at sign-in and never look again, so a question
+   that arrived while a coordinator sat looking at the screen simply never
+   appeared. For something a patient is told is a direct line, that is the
+   whole product failing quietly.
+
+   It polls counts, not content, and only pays for a full reload when a count
+   actually moves.
+   ========================================================================== */
+
+var PULSE = null;          /* last counts seen */
+var pulseTimer = null;
+var PULSE_MS = 30000;
+
+/* Never redraw the screen out from under someone. Re-rendering while a modal
+   is open, or while they are typing a reply, would throw away their work. */
+function safeToRedraw() {
+  if (!$("#modal").hidden) return false;
+  var el = document.activeElement;
+  if (el && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) return false;
+  if (VIEW === "compose" || VIEW === "me") return false;
+  return true;
+}
+
+async function pulse(force) {
+  if (!ME) return;
+  let p;
+  try { p = await api(scoped("/api/admin/pulse")); }
+  catch (e) { return; }   /* offline or signed out; the next tick tries again */
+
+  const changed = !PULSE ||
+    p.questions !== PULSE.questions ||
+    p.checkins !== PULSE.checkins ||
+    p.signups !== PULSE.signups ||
+    p.latest !== PULSE.latest;
+
+  /* Badges update even when a redraw would be rude, so a coordinator mid-reply
+     still sees that something new is waiting. */
+  const qb = $("#navInboxCount"); if (qb) qb.textContent = p.questions ? String(p.questions) : "";
+  const cb = $("#navCheckCount"); if (cb) cb.textContent = p.checkins ? String(p.checkins) : "";
+  const sb = $("#navSignupCount"); if (sb) sb.textContent = p.signups ? String(p.signups) : "";
+
+  const arrived = PULSE && p.questions > PULSE.questions;
+  PULSE = p;
+  if (!changed && !force) return;
+  if (!safeToRedraw()) return;
+  await refresh();
+  render();
+  if (arrived) toast("New question from a patient.");
+}
+
+function startPulse() {
+  stopPulse();
+  pulseTimer = setInterval(pulse, PULSE_MS);
+  /* Coming back to the tab is the moment a coordinator most wants it current,
+     and waiting up to 30 seconds for the timer is the wrong answer. */
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden) pulse();
+  });
+  window.addEventListener("focus", function () { pulse(); });
+}
+function stopPulse() { if (pulseTimer) { clearInterval(pulseTimer); pulseTimer = null; } }
 
 /* ==========================================================================
    Data
@@ -1518,7 +1588,10 @@ document.addEventListener("click", function (e) {
   const act = e.target.closest("[data-act]");
   if (!act) return;
   const a = act.dataset.act;
-  if (a === "refresh") return refresh().then(render).then(function () { toast("Updated."); });
+  if (a === "refresh") {
+    return refresh().then(render).then(function () { return pulse(true); })
+      .then(function () { toast("Updated."); });
+  }
   if (a === "profile") { VIEW = "me"; return render(); }
   if (a === "answer") return answerModal(act.dataset.id, act.dataset.pid);
   if (a === "edit") return patientModal(act.dataset.id);
