@@ -1,71 +1,71 @@
-# Console backdrop
+# Console and app backdrop
 
 The same file sits behind **every console view and every app screen**
-(`public/console/img/backdrop.webp` and `public/app/img/backdrop.webp`), so the
-two halves of the product share a room. It sits behind every console view, right of the
-sidebar, fixed so it does not scroll.
+(`public/console/img/backdrop.webp`, `public/app/img/backdrop.webp`), fixed so
+it does not scroll. On the console it starts right of the sidebar; the sidebar
+keeps its own solid surface and sits above it.
 
-## Swapping it
+It is the app-icon lion — the same photograph as the home-screen icon —
+processed so dark text can sit on it.
 
-Copy any of the alternates over it and redeploy:
+## Regenerating it
 
-    cp docs/backdrop-alt-abstract.webp public/console/img/backdrop.webp
-    vercel deploy --prod --yes
+    node scripts/backdrop-from-icon.js public/app/icons/icon-512.png <outDir> [strength]
 
-| file | what it is | darkest pixel |
-|---|---|---|
-| *(installed)* | **lion in bright haze** | rgb(221,201,174) |
-| `backdrop-alt-lion-faint.webp` | lion, barely there | rgb(230,214,187) |
-| `backdrop-alt-lion-studio.webp` | lion on white, more defined | rgb(162,135,105) |
-| `backdrop-alt-waitingroom.webp` | bright clinic waiting room | rgb(162,144,128) |
-| `backdrop-alt-linen.webp` | cream linen and a gold thread | rgb(205,201,195) |
-| `backdrop-alt-couple-light.webp` | couple outdoors, washed out | rgb(210,202,194) |
-| `backdrop-alt-clinic-dark.webp` | clinic, oak and navy. **Unusable**, caps at 3% | rgb(19,18,23) |
-| `backdrop-alt-abstract.webp` | brass and stone. **Unusable**, caps at 4% | rgb(85,60,30) |
-| `backdrop-alt-couple.webp` | couple at dusk. **Unusable**, caps at 3% | rgb(32,24,20) |
-| `backdrop-alt-road.webp` | runner at dawn. **Unusable**, caps at 3% | rgb(58,48,40) |
+`strength` is the mark's opacity x1000. Installed at **700**.
 
-Anything whose darkest pixel is below about rgb(160,140,120) cannot be shown
-above a few percent without dark text failing on it. That is the whole test.
+| strength | darkest pixel | navy text | grey text |
+|---|---|---|---|
+| 420 | rgb(201,186,161) | 7.05:1 | 2.80:1 |
+| 550 | rgb(187,169,138) | 5.83:1 | 2.32:1 |
+| **700** | **rgb(171,149,111)** | **4.61:1** | 1.83:1 |
+| 850 | rgb(154,128,85) | 3.58:1 | fails |
+| 1000 | rgb(138,108,58) | fails | fails |
 
-## One thing to watch on the app
+Two alternates are in `docs/`: `backdrop-alt-lion-fainter.webp` (420) and
+`backdrop-alt-lion-stronger.webp` (850, **navy fails AA at 3.58:1** — only for a
+page with no loose text on it).
+
+## How the processing works, and why
+
+The icon is a bright lion on a near-black surround. Painting it directly is
+impossible: dark type cannot sit on a dark photograph at any strength you would
+actually see. Measured on eight ordinary photographs, the strongest any could be
+shown while text still cleared 4.5:1 was **3-4%**.
+
+So the script uses the icon's own **brightness as the mark's opacity**, painting
+in warm tan on cream. The lion's mane and face become the mark; the black
+surround resolves to paper exactly. Two consequences worth knowing:
+
+- there is no rectangle edge to feather away, and no seam when the page crops it
+- the output's darkest pixel is a number you choose, not one you inherit
+
+Fill the canvas **black** before drawing, not cream. Brightness becomes ink, so
+untouched margins must start at zero or they come out as solid tan bars.
+
+## Text on the backdrop
+
+Grey fails on this at 1.83:1. Every text node that is a direct child of `#main`
+has no card under it and so sits on the lion; those wear navy (`console.css`,
+the `#main > ...` block). Inside a card, on a known white surface, grey is still
+correct and stays.
+
+Verified across all ten console views by walking each text node's ancestors to
+find the background that actually paints under it: **25 nodes sit on the lion,
+worst pair 5.16:1** against a 4.5:1 requirement.
+
+A narrower check missed an "empty" placeholder reading 2.05:1, so the rule
+covers the whole set of direct children rather than named selectors.
+
+## The trap on the app
 
 The home hero photograph is masked to transparent at its foot. It needs its own
 opaque ground (`.hero2 { background: var(--cream) }`) or it dissolves into the
-backdrop instead of into paper, and you get two photographs bleeding through
-each other. That was a real bug: a sofa came through the couple.
-
-## Why the image is high-key
-
-A photograph with real shadows in it CANNOT sit behind dark text. Measured on
-the four first-pass candidates, all of them ordinary photographs: the strongest
-each could be shown while navy and grey text still cleared 4.5:1 was **3-4%**.
-Not a matter of taste, just arithmetic — dark text needs a light ground, and a
-shadow anywhere in the frame is where it fails.
-
-The installed image is deliberately overexposed. Its darkest pixel is
-rgb(162,144,128), which navy type clears at 4.5:1 with **no veil at all**.
-
-The second thing that had to change: the small grey labels are the only text
-that sits on raw photograph rather than on a card, and grey-on-photo fails
-before anything else does. Outside a card they now wear navy. Inside a card, on
-a known white surface, grey is still correct and stays.
+backdrop instead of into paper, and two photographs bleed through each other.
+That was a real bug: a sofa came through the couple.
 
 ## The veil
 
-`--backdrop-veil` in `console.css` is how much cream sits over the image.
-`0.93` means 7% of the photograph shows through. Lower it and the image gets
-stronger; measure text contrast afterwards, because this is working UI and the
-type sits directly on it.
-
-Measured at 0.18 — the image showing at 82% — against the DARKEST pixel in it,
-across every console view: worst pair **8.93:1**, against a 4.5:1 requirement.
-
-## Making new ones
-
-    node scripts/backdrop-generate.js <outDir>
-
-Uses `XAI_API_KEY` from the LIMEN repo's `.env.local` and the
-`grok-imagine-image` model. Roughly $0.07 an image. Output is 1280x720 JPEG;
-convert to WebP before installing — at this veil it never needs to be sharp,
-and 1280 wide at quality 0.72 lands around 12kb.
+`--backdrop-veil` (0.10) is a little cream over the top for headroom. The image
+is already pre-lightened by the processing above, so this is softening, not the
+thing making the page legible.

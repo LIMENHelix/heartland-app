@@ -673,7 +673,7 @@ body {
      bottoms out at rgb(162,144,128), which navy text clears at 4.5:1 even with
      NO veil at all. A photograph with real shadows in it caps out around 0.95
      no matter what you do, which is why this one is deliberately high-key. */
-  --backdrop-veil: 0.18;
+  --backdrop-veil: 0.10;
   --side-w: 236px;
 }
 
@@ -713,9 +713,17 @@ body {
    this image by a wide margin, so the labels outside cards wear navy and the
    picture gets to be visible. Inside a card, on a known white surface, grey is
    still correct and stays. */
+/* Anything that is a direct child of #main has no card under it and so sits on
+   the backdrop. Grey there is the pair that fails; navy clears it. Catching the
+   whole set rather than named selectors, because the one that got missed the
+   first time was an "empty" placeholder nobody thinks of as a text style. */
 #main > .head .eyebrow,
 #main > .eyebrow,
-#main > .notice {
+#main > .notice,
+#main > .empty,
+#main > p,
+#main > .sub,
+#main > .field__h {
   color: var(--navy);
 }
 #main > .notice { background: rgba(255, 255, 255, .92); }

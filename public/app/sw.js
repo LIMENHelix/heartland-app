@@ -6,7 +6,7 @@
    correct matters more than shaving milliseconds, and the cache is still there
    as a fallback when the phone is offline. */
 
-var CACHE = "heartland-v15";
+var CACHE = "heartland-v16";
 
 var SHELL = [
   "./",
