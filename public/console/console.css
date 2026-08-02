@@ -101,7 +101,7 @@ body {
    Shell — navy bar on top, white rail on the left, paper in the middle
    ========================================================================== */
 
-.shell { display: grid; grid-template-columns: 236px 1fr; min-height: 100dvh; }
+.shell { display: grid; grid-template-columns: var(--side-w, 236px) 1fr; min-height: 100dvh; }
 
 .side {
   display: flex; flex-direction: column; gap: 8px;
@@ -641,4 +641,60 @@ body {
 .mark--lg {
   border-radius: 12px;
   box-shadow: 0 0 0 1px rgba(212, 178, 102, .5), 0 8px 22px rgba(33, 49, 59, .22);
+}
+
+
+/* ==========================================================================
+   Page backdrop.
+
+   Covers everything right of the sidebar, on every view, and does not scroll
+   with the content: a photograph sliding under dense UI is unpleasant to read
+   against and makes the eye chase it.
+
+   THE VEIL IS THE IMPORTANT PART. This console is working UI — tables, forms,
+   cards full of numbers — and a photograph at full strength behind it destroys
+   readability. --backdrop-veil is how much cream sits over the image. At the
+   default the photograph reads as faint atmosphere behind the work rather than
+   as a picture competing with it. Lower it and text starts to fight the image;
+   check the contrast if you do.
+
+   If img/backdrop.webp is absent, the veil alone paints flat cream, which is
+   exactly what this looked like before. Nothing breaks, nothing goes
+   unreadable. That is deliberate: on the pricing deck a missing photograph
+   took the type down with it, because the type had been styled to sit ON the
+   photo. Nothing here is styled that way.
+   ========================================================================== */
+
+:root {
+  --backdrop-veil: 0.93;   /* 0 = raw photo, 1 = no photo at all */
+  --side-w: 236px;
+}
+
+.backdrop {
+  position: fixed;
+  left: var(--side-w); right: 0; top: 0; bottom: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--cream);
+  background-image:
+    linear-gradient(rgba(247, 243, 235, var(--backdrop-veil)),
+                    rgba(247, 243, 235, var(--backdrop-veil))),
+    url("img/backdrop.webp");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* The sidebar keeps its own solid surface and sits above the backdrop, so the
+   nav is never read against a photograph. */
+.side { position: relative; z-index: 2; }
+.main { position: relative; z-index: 1; }
+
+@media (max-width: 900px) {
+  /* Sidebar collapses on narrow screens, so the backdrop takes the full width. */
+  .backdrop { left: 0; }
+}
+
+@media print {
+  .backdrop { display: none; }
 }
