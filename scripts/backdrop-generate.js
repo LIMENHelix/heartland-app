@@ -16,14 +16,14 @@ function xaiKey() {
 /* Written for a background BEHIND dense working UI: calm, soft, low contrast,
    nothing sharp competing with tables of patient names. */
 const PROMPTS = [
-  { name: "L1-clinic-highkey",
-    prompt: "High-key architectural photograph of a bright modern men's health clinic interior, flooded with soft diffused daylight, pale bleached oak, warm white walls, cream upholstery, a hint of brushed brass, everything light and airy with NO dark areas, NO deep shadows, NO black, uniformly bright and overexposed in the highlights, very low contrast, soft focus throughout, palette of white, cream, pale sand and light warm grey, no people, no text, no watermark, wide 16:9" },
+  { name: "lion-1-haze",
+    prompt: "High-key fine-art photograph of a majestic male lion with a full mane, standing in bright white morning haze, heavily overexposed and washed out so the whole frame is pale, the lion rendered in soft faint warm gold and cream tones as if seen through bright fog, NO dark areas, NO black, NO deep shadows, extremely low contrast, ethereal and airy, palette of white, cream, pale sand and faint warm gold, no text, no watermark, wide 16:9" },
 
-  { name: "L2-linen-highkey",
-    prompt: "High-key macro photograph of cream linen fabric and pale warm stone with a faint brushed gold thread, extremely soft focus, flooded with bright diffused light, entirely light and airy, NO dark areas, NO shadows, NO black, very low contrast, minimal and calm, palette of white, cream, oatmeal and the faintest warm gold, no text, no watermark, wide 16:9" },
+  { name: "lion-2-studio",
+    prompt: "High-key studio photograph of a male lion with a full mane in profile against a pure white seamless background, blown-out high-key lighting from all sides, the lion pale golden and softly lit with NO dark shadows and NO black anywhere, very low contrast, minimal and clean, palette of white, cream and pale gold, no text, no watermark, wide 16:9" },
 
-  { name: "L3-couple-highkey",
-    prompt: "High-key lifestyle photograph, a man in his late forties and his wife walking together outdoors in bright hazy morning sunlight, seen small and far away in the lower right, heavily overexposed and washed out, the frame dominated by bright white haze and pale sky, NO dark areas, NO deep shadows, very low contrast, dreamlike and airy, palette of white, cream and pale gold, no text, no watermark, wide 16:9" }
+  { name: "lion-3-faint",
+    prompt: "Extremely faint high-key photograph of a male lion's head and mane emerging from bright cream mist, barely visible, like a watermark or a memory, the whole image washed out to near-white with only the softest warm gold suggestion of the mane, NO dark areas, NO black, NO shadows, almost no contrast, calm and minimal, palette of white, cream and the faintest gold, no text, no watermark, wide 16:9" }
 ];
 
 (async () => {

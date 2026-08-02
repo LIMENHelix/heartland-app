@@ -293,6 +293,13 @@ main {
 .hero2 {
   position: relative;
   isolation: isolate;
+  /* The photograph is masked to transparent at its foot. Without a ground of
+     its own it dissolves into whatever is behind the page, and once a backdrop
+     image existed that meant the hero faded into a DIFFERENT photograph: a
+     sofa coming through the couple. It fades into paper, and only paper.
+     Inside this stacking context the background paints first and ::before
+     paints on top of it, which is exactly the order needed. */
+  background: var(--cream);
   margin: -22px calc(var(--pad) * -1) 10px;
   height: min(74svh, 600px);
   display: flex; flex-direction: column; justify-content: flex-end;
@@ -980,7 +987,7 @@ main {
    The home hero photograph sits on top of this and is unaffected.
    ========================================================================== */
 
-:root { --backdrop-veil: 0.28; }
+:root { --backdrop-veil: 0.18; }   /* the lion bottoms out at rgb(221,201,174) */
 
 .backdrop {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
