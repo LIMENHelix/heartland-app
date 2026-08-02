@@ -963,3 +963,45 @@ main {
   font-family: var(--display); font-weight: 700; font-size: 14.5px;
 }
 .gatelink:hover { color: #fff; }
+
+
+/* ==========================================================================
+   Page backdrop, every screen.
+
+   Same photograph as the console, so the two halves of the product share a
+   room. Fixed, so it does not slide under the content as he scrolls.
+
+   The image is deliberately high-key: its darkest pixel is rgb(162,144,128),
+   which navy type clears at better than 4.5:1 with no veil at all. A normal
+   photograph with shadows in it cannot carry dark text and has to be washed
+   out to the point of being invisible, which is what the first attempt at this
+   was. --backdrop-veil is the softening, not the thing making it legible.
+
+   The home hero photograph sits on top of this and is unaffected.
+   ========================================================================== */
+
+:root { --backdrop-veil: 0.28; }
+
+.backdrop {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-color: var(--cream);
+  background-image:
+    linear-gradient(rgba(247, 243, 235, var(--backdrop-veil)),
+                    rgba(247, 243, 235, var(--backdrop-veil))),
+    url("img/backdrop.webp");
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+}
+
+/* Everything the patient touches sits above it. The tab bar and header keep
+   their own solid surfaces so navigation is never read against a photograph. */
+main, .topbar, .tabbar, .sidenav, .sheet, .gate { position: relative; z-index: 1; }
+.topbar, .tabbar, .sidenav { z-index: 3; }
+.sheet { z-index: 40; }
+
+/* The eyebrow labels above each screen are the only text that sits on raw
+   photograph rather than on a card. Grey is the first pair to fail there. */
+.screen > .eyebrow { color: var(--navy); }
+
+@media print { .backdrop { display: none; } }

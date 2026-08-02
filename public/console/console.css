@@ -666,7 +666,14 @@ body {
    ========================================================================== */
 
 :root {
-  --backdrop-veil: 0.93;   /* 0 = raw photo, 1 = no photo at all */
+  /* 0 = raw photo, 1 = no photo at all.
+
+     What sets this ceiling is not taste, it is the darkest pixel in the image
+     against the lightest text sitting on it. Measured: the installed backdrop
+     bottoms out at rgb(162,144,128), which navy text clears at 4.5:1 even with
+     NO veil at all. A photograph with real shadows in it caps out around 0.95
+     no matter what you do, which is why this one is deliberately high-key. */
+  --backdrop-veil: 0.28;
   --side-w: 236px;
 }
 
@@ -698,3 +705,17 @@ body {
 @media print {
   .backdrop { display: none; }
 }
+
+
+/* The one thing that capped how strong the backdrop could be: the small grey
+   labels are the only text that sits on raw photograph rather than on a card,
+   and grey-on-photo is the first pair to fail. Navy clears the darkest part of
+   this image by a wide margin, so the labels outside cards wear navy and the
+   picture gets to be visible. Inside a card, on a known white surface, grey is
+   still correct and stays. */
+#main > .head .eyebrow,
+#main > .eyebrow,
+#main > .notice {
+  color: var(--navy);
+}
+#main > .notice { background: rgba(255, 255, 255, .92); }

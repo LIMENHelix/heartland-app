@@ -16,17 +16,14 @@ function xaiKey() {
 /* Written for a background BEHIND dense working UI: calm, soft, low contrast,
    nothing sharp competing with tables of patient names. */
 const PROMPTS = [
-  { name: "01-couple",
-    prompt: "Cinematic editorial photograph, a relaxed man in his late forties and his wife on a sunlit porch in early evening, laughing quietly together, positioned in the right third of the frame and softly out of focus, the left two thirds filled with warm blurred evening light and empty space, muted palette of cream, tan and soft gold, natural low-contrast window light, no harsh shadows, shallow depth of field, no text, no watermark, no logos, wide 16:9 composition" },
+  { name: "L1-clinic-highkey",
+    prompt: "High-key architectural photograph of a bright modern men's health clinic interior, flooded with soft diffused daylight, pale bleached oak, warm white walls, cream upholstery, a hint of brushed brass, everything light and airy with NO dark areas, NO deep shadows, NO black, uniformly bright and overexposed in the highlights, very low contrast, soft focus throughout, palette of white, cream, pale sand and light warm grey, no people, no text, no watermark, wide 16:9" },
 
-  { name: "02-road",
-    prompt: "Cinematic documentary photograph, a fit man in his fifties running on a quiet tree-lined road at dawn, seen from far behind and small in the frame, soft golden morning haze, the composition dominated by open empty road and diffused light, very low contrast, muted warm neutrals of cream and pale gold, no text, no watermark, no logos, wide 16:9 composition" },
+  { name: "L2-linen-highkey",
+    prompt: "High-key macro photograph of cream linen fabric and pale warm stone with a faint brushed gold thread, extremely soft focus, flooded with bright diffused light, entirely light and airy, NO dark areas, NO shadows, NO black, very low contrast, minimal and calm, palette of white, cream, oatmeal and the faintest warm gold, no text, no watermark, wide 16:9" },
 
-  { name: "03-clinic",
-    prompt: "Architectural interior photograph, the quiet corner of a modern private men's health clinic consultation room, warm oak panelling and matte deep navy surfaces, a single soft lamp, one empty leather chair, mostly gently blurred with a large uncluttered warm wall area, soft natural daylight, palette of cream, warm oak, deep blue-grey and brushed brass, no people, no text, no watermark, no logos, wide 16:9 composition" },
-
-  { name: "04-abstract",
-    prompt: "Abstract macro photograph of warm brushed brass meeting soft cream stone along a gentle diagonal, extremely shallow depth of field so the whole frame is softly out of focus, subtle golden light gradient, no recognisable objects, minimal and calm, muted palette of cream, tan, deep gold and charcoal, no text, no watermark, no logos, wide 16:9 composition" }
+  { name: "L3-couple-highkey",
+    prompt: "High-key lifestyle photograph, a man in his late forties and his wife walking together outdoors in bright hazy morning sunlight, seen small and far away in the lower right, heavily overexposed and washed out, the frame dominated by bright white haze and pale sky, NO dark areas, NO deep shadows, very low contrast, dreamlike and airy, palette of white, cream and pale gold, no text, no watermark, wide 16:9" }
 ];
 
 (async () => {
