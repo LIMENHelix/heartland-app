@@ -673,7 +673,7 @@ body {
      bottoms out at rgb(162,144,128), which navy text clears at 4.5:1 even with
      NO veil at all. A photograph with real shadows in it caps out around 0.95
      no matter what you do, which is why this one is deliberately high-key. */
-  --backdrop-veil: 0.10;
+  --backdrop-veil: 0;
   --side-w: 236px;
 }
 

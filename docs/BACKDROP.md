@@ -10,21 +10,19 @@ processed so dark text can sit on it.
 
 ## Regenerating it
 
-    node scripts/backdrop-from-icon.js public/app/icons/icon-512.png <outDir> [strength]
+    node scripts/backdrop-from-icon.js public/app/icons/icon-512.png <outDir> [lo] [hi] [sat]
 
-`strength` is the mark's opacity x1000. Installed at **700**.
+Installed at **188 252 3.6**.
 
-| strength | darkest pixel | navy text | grey text |
+| lo / hi / sat | darkest pixel | navy text | look |
 |---|---|---|---|
-| 420 | rgb(201,186,161) | 7.05:1 | 2.80:1 |
-| 550 | rgb(187,169,138) | 5.83:1 | 2.32:1 |
-| **700** | **rgb(171,149,111)** | **4.61:1** | 1.83:1 |
-| 850 | rgb(154,128,85) | 3.58:1 | fails |
-| 1000 | rgb(138,108,58) | fails | fails |
+| 168 251 2.4 | rgb(168,168,169) | 5.64:1 | deepest, visible grey halo |
+| **188 252 3.6** | **rgb(205,202,200)** | **8.22:1** | installed |
+| 196 252 3.2 | rgb(210,208,208) | 8.73:1 | softer |
 
-Two alternates are in `docs/`: `backdrop-alt-lion-fainter.webp` (420) and
-`backdrop-alt-lion-stronger.webp` (850, **navy fails AA at 3.58:1** — only for a
-page with no loose text on it).
+Two alternates in `docs/`: `backdrop-alt-lion-softer.webp` and
+`backdrop-alt-lion-deeper.webp`. Copy either over
+`public/console/img/backdrop.webp` and `public/app/img/backdrop.webp`.
 
 ## How the processing works, and why
 
@@ -33,15 +31,27 @@ impossible: dark type cannot sit on a dark photograph at any strength you would
 actually see. Measured on eight ordinary photographs, the strongest any could be
 shown while text still cleared 4.5:1 was **3-4%**.
 
-So the script uses the icon's own **brightness as the mark's opacity**, painting
-in warm tan on cream. The lion's mane and face become the mark; the black
-surround resolves to paper exactly. Two consequences worth knowing:
+An earlier version solved that by using the icon's brightness as an opacity mask
+and painting the whole thing in a single tan. It worked and it threw the
+photograph away: a monotone stencil, no golds, no amber eyes. **Keep the
+colour.** Three steps, in this order:
 
-- there is no rectangle edge to feather away, and no seam when the page crops it
-- the output's darkest pixel is a number you choose, not one you inherit
+1. **Saturation up.** Step 2 compresses the range and would otherwise leave
+   everything grey.
+2. **Compress luminance into a light band** (`lo`-`hi`). Relative colour and
+   detail survive; the whole image lifts clear of dark type. The output's
+   darkest pixel becomes a number you choose rather than one you inherit.
+3. **Fade to paper radially**, weighted slightly by each pixel's original
+   brightness. This is what makes the icon's square edge and its near-black
+   surround disappear instead of leaving a rectangle or a grey halo.
 
-Fill the canvas **black** before drawing, not cream. Brightness becomes ink, so
-untouched margins must start at zero or they come out as solid tan bars.
+Two traps in that third step. Weight the fade by brightness too hard (0.18 +
+0.82L) and the shadow detail that gives the head its shape burns away, leaving
+something that reads as fire rather than a lion; 0.72 + 0.28L holds. And leave
+the floor too low and the near-black surround compresses to a grey ring around
+the head, which is why `lo` sits near 190 rather than near 168.
+
+Because the image now carries its own lightness, `--backdrop-veil` is **0**.
 
 ## Text on the backdrop
 

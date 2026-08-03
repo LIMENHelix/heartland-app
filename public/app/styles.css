@@ -987,7 +987,7 @@ main {
    The home hero photograph sits on top of this and is unaffected.
    ========================================================================== */
 
-:root { --backdrop-veil: 0.10; }
+:root { --backdrop-veil: 0; }
 
 .backdrop {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;

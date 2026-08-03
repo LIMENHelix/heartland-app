@@ -1,17 +1,24 @@
-/* Turn the app-icon lion into a page backdrop.
+/* The app-icon lion as a page backdrop, KEEPING ITS OWN COLOURS.
 
-   The icon is a near-black portrait. Dark text cannot sit on that, so rather
-   than pick a different lion this remaps THIS lion's tones into the light end
-   of the range: every level is preserved, the whole thing is just moved up
-   into a band that dark type clears. The head, the mane, the shape are all
-   still there, rendered as a watermark rather than a photograph.
+   The earlier version used the icon's brightness as an opacity mask and
+   painted it all in one tan. That solved the contrast problem and threw the
+   photograph away: a stencil, not a lion.
 
-   node lionize.js <src.png> <outDir> [lo] [hi]                              */
+   This keeps every pixel's own hue. Three steps, in this order:
+
+     1  boost saturation, because step 2 compresses the range and would
+        otherwise leave everything grey
+     2  compress luminance into a light band, which preserves relative colour
+        and detail while lifting the whole image clear of dark type
+     3  fade to paper radially, so the icon's square edge and its near-black
+        surround both disappear instead of leaving a rectangle
+
+   node lioncolor.js <src.png> <outDir> [lo] [hi] [sat]                       */
 "use strict";
 const { spawn } = require("child_process");
 const fs = require("fs"), os = require("os"), path = require("path");
 const CHROME = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
-const PORT = 9491;
+const PORT = 9493;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 class CDP {
@@ -40,14 +47,13 @@ class CDP {
 }
 
 (async () => {
-  const [src, outDir, loArg, hiArg] = process.argv.slice(2);
-  const LO = Number(loArg || 420);   /* strength x1000 */
-  const HI = Number(hiArg || 0);
+  const [src, outDir, loA, hiA, satA] = process.argv.slice(2);
+  const LO = Number(loA || 168), HI = Number(hiA || 251), SAT = Number(satA || 2.4);
   fs.mkdirSync(outDir, { recursive: true });
 
   const dir = path.dirname(path.resolve(src)).split(path.sep).join("/");
   const file = path.basename(src);
-  const profile = path.join(os.tmpdir(), "hmh-lionize-" + Date.now());
+  const profile = path.join(os.tmpdir(), "hmh-lioncol-" + Date.now());
   const chrome = spawn(CHROME, ["--headless=new", "--disable-gpu",
     "--remote-debugging-port=" + PORT, "--user-data-dir=" + profile,
     "--allow-file-access-from-files", "--no-first-run", "about:blank"], { stdio: "ignore" });
@@ -72,44 +78,67 @@ class CDP {
     const W = 1280, H = 720;
     const c = document.createElement("canvas"); c.width = W; c.height = H;
     const g = c.getContext("2d", { alpha: false });
-    /* Fill BLACK, not cream. The mapping below turns brightness into ink, so
-       anything untouched must start at zero brightness or the empty margins
-       come out as solid tan bars. */
-    g.fillStyle = "#000000"; g.fillRect(0, 0, W, H);
 
-    /* The icon is square. Draw it tall and centred so the head fills the
-       height, then let the cream field carry the rest of the width. */
-    const side = Math.round(H * 1.06);
+    const cream = [247, 243, 235];
+    g.fillStyle = "rgb(" + cream.join(",") + ")"; g.fillRect(0, 0, W, H);
+
+    const side = Math.round(H * 1.18);
     const dx = Math.round((W - side) / 2), dy = Math.round((H - side) / 2);
     g.drawImage(img, dx, dy, side, side);
 
     const d = g.getImageData(0, 0, W, H);
     const px = d.data;
-    const STRENGTH = ${LO} / 1000;          /* reused as the mark's strength */
-    const cream = [247, 243, 235];
-    const tint  = [138, 108, 58];           /* warm tan, sits in the brand's gold family */
+    const LO = ${LO}, HI = ${HI}, SPAN = HI - LO, SAT = ${SAT};
+    const cx = W / 2, cy = H / 2;
+    const rIn = H * 0.30, rOut = H * 0.72;
 
-    /* The icon is a bright lion on a near-black surround. Using its own
-       brightness as the mark's opacity means the lion paints in warm tan and
-       the black surround becomes paper exactly, so there is no rectangle edge
-       to hide and no seam when the page crops it. */
-    for (let i = 0; i < px.length; i += 4) {
-      const L = (0.2126 * px[i] + 0.7152 * px[i+1] + 0.0722 * px[i+2]) / 255;
-      const a = L * STRENGTH;
-      px[i]     = cream[0] * (1 - a) + tint[0] * a;
-      px[i + 1] = cream[1] * (1 - a) + tint[1] * a;
-      px[i + 2] = cream[2] * (1 - a) + tint[2] * a;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4;
+
+        /* inside the drawn square? outside it, leave the cream alone */
+        const inSquare = x >= dx && x < dx + side && y >= dy && y < dy + side;
+
+        let r = px[i], gg = px[i + 1], b = px[i + 2];
+
+        /* 1. saturation, around the pixel's own grey */
+        const grey = 0.2126 * r + 0.7152 * gg + 0.0722 * b;
+        r  = grey + (r  - grey) * SAT;
+        gg = grey + (gg - grey) * SAT;
+        b  = grey + (b  - grey) * SAT;
+
+        /* 2. compress into the light band */
+        r  = LO + (Math.max(0, Math.min(255, r))  / 255) * SPAN;
+        gg = LO + (Math.max(0, Math.min(255, gg)) / 255) * SPAN;
+        b  = LO + (Math.max(0, Math.min(255, b))  / 255) * SPAN;
+
+        /* 3. fade to paper towards the edges, and everywhere outside the square */
+        const dist = Math.hypot(x - cx, y - cy);
+        let a = inSquare ? 1 - Math.max(0, Math.min(1, (dist - rIn) / (rOut - rIn))) : 0;
+        a = a * a * (3 - 2 * a);   /* smoothstep, so there is no visible ring */
+
+        /* Weight by the pixel's ORIGINAL brightness as well. The icon's
+           near-black surround would otherwise compress to a flat grey and
+           read as a halo around the head; this lets it fall away to paper
+           while the lit mane keeps full strength and full colour. */
+        const L0 = grey / 255;
+        a *= 0.72 + 0.28 * Math.pow(L0, 0.6);
+
+        px[i]     = cream[0] * (1 - a) + r  * a;
+        px[i + 1] = cream[1] * (1 - a) + gg * a;
+        px[i + 2] = cream[2] * (1 - a) + b  * a;
+      }
     }
     g.putImageData(d, 0, 0);
 
-    /* report the darkest pixel: the number that decides if this is usable */
     const out = g.getImageData(0, 0, W, H).data;
-    let min = 255;
-    for (let i = 0; i < out.length; i += 4 * 7) {
-      const y = 0.2126 * out[i] + 0.7152 * out[i+1] + 0.0722 * out[i+2];
-      if (y < min) min = y;
+    let min = 255, minPx = null;
+    for (let i = 0; i < out.length; i += 4 * 5) {
+      const y2 = 0.2126 * out[i] + 0.7152 * out[i+1] + 0.0722 * out[i+2];
+      if (y2 < min) { min = y2; minPx = [out[i], out[i+1], out[i+2]]; }
     }
-    return JSON.stringify({ min: Math.round(min), data: c.toDataURL("image/webp", 0.86) });
+    return JSON.stringify({ min: Math.round(min), minPx: minPx.map(Math.round),
+                            data: c.toDataURL("image/webp", 0.88) });
   })()`;
 
   const r = await cdp.send("Runtime.evaluate", { expression: expr, awaitPromise: true, returnByValue: true });
@@ -118,8 +147,15 @@ class CDP {
   const buf = Buffer.from(o.data.split(",")[1], "base64");
   const outFile = path.join(outDir, "backdrop.webp");
   fs.writeFileSync(outFile, buf);
-  console.log("  mark strength " + (LO/1000).toFixed(2) + "   darkest pixel " + o.min +
-              "   " + Math.round(buf.length / 1024) + "kb   -> " + outFile);
+
+  /* what navy type will actually get on the worst pixel */
+  const rl = (a) => { const f = a.map(v => { v /= 255; return v <= 0.03928 ? v/12.92 : Math.pow((v+0.055)/1.055, 2.4); });
+                      return 0.2126*f[0] + 0.7152*f[1] + 0.0722*f[2]; };
+  const navy = rl([33,49,59]), bg = rl(o.minPx);
+  const ratio = ((Math.max(navy,bg)+0.05)/(Math.min(navy,bg)+0.05)).toFixed(2);
+  console.log("  band [" + LO + "," + HI + "]  sat " + SAT +
+              "   darkest rgb(" + o.minPx.join(",") + ")   navy " + ratio + ":1   " +
+              Math.round(buf.length/1024) + "kb   -> " + outFile);
 
   chrome.kill(); await sleep(300);
   try { fs.rmSync(profile, { recursive: true, force: true }); } catch (e) {}
