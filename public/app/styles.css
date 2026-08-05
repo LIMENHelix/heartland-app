@@ -995,9 +995,13 @@ main {
   background-image:
     linear-gradient(rgba(247, 243, 235, var(--backdrop-veil)),
                     rgba(247, 243, 235, var(--backdrop-veil))),
-    url("img/backdrop.webp");
-  background-size: cover;
-  background-position: center center;
+url("img/backdrop.webp");
+  /* Bottom right, and small enough to sit in the gap under the content
+     rather than behind it. Full width put the lion's head exactly where the
+     cards are, so what showed was four legs and a tail: a headless animal
+     reads as a mistake, where a whole one in the corner reads as a choice. */
+  background-size: auto, min(62%, 820px) auto;
+  background-position: center, right -2% bottom -1%;
   background-repeat: no-repeat;
 }
 

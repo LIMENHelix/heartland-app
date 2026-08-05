@@ -26,6 +26,24 @@
 
 <main id="main"></main>
 
+<!-- Always present once he is set up. The first version had no nav at all:
+     you picked your goals, the screen changed, and there was no way back to
+     the thing you had just tapped. -->
+<nav class="tabbar" id="tabbar" hidden>
+  <button class="tab" data-act="go" data-s="today">
+    <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M4 12h4l2.5-6 3 12L16 12h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <span>Today</span>
+  </button>
+  <button class="tab" data-act="go" data-s="rate">
+    <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><path d="M5 19V10M12 19V5M19 19v-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>Rate</span>
+  </button>
+  <button class="tab" data-act="go" data-s="setup">
+    <svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>Setup</span>
+  </button>
+</nav>
+
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <div class="sheet" id="sheet" hidden>

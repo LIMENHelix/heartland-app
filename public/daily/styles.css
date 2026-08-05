@@ -277,7 +277,9 @@ main {
   background-image:
     linear-gradient(rgba(247,243,235,.55), rgba(247,243,235,.55)),
     url("img/backdrop.webp");
-  background-size: cover; background-position: center; background-repeat: no-repeat;
+  background-size: auto, min(100%, 1280px) auto;
+  background-position: center, center bottom;
+  background-repeat: no-repeat;
 }
 .topbar {
   position: sticky; top: 0; z-index: 3;
@@ -580,16 +582,47 @@ main {
 
 body { background: var(--ink-d); color: var(--text-d); }
 
-/* The lion, full strength, anchored top-right and fading into the dark. */
+/* The lion, full strength, anchored to the top and fading into the dark.
+
+   A real 1280x720 photograph now, not the 192px app icon stretched to eight
+   times its size. Because the frame it was shot in is already black to the
+   edges, this one CAN fill the width without a visible boundary: the fade
+   below it is doing the join, not a crop.
+
+   `cover` is still wrong for it. Pinned to the width, capped at native size,
+   and anchored to the top, the head sits in the upper third on every screen
+   instead of being magnified until only a nostril is left on a phone. */
 .backdrop {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background-color: var(--ink-d);
+  /* TWO scrims, and the horizontal one is not decoration.
+
+     Measured on the first version: the headline came out at 2.24:1 and the
+     gold eyebrow at 2.30:1, both against the lit mane, where large text needs
+     3 and small text needs 4.5. The lion was simply behind the words.
+
+     So the animal is pushed right, out of the text column, and a left-to-right
+     scrim holds the reading side dark while leaving his face at full strength.
+     Re-measure with scripts/test/contrast.js after touching any of this: the
+     failure is invisible in a screenshot until you look for it. */
   background-image:
-    radial-gradient(120% 85% at 78% 8%, rgba(11,15,18,0) 0%, rgba(11,15,18,.55) 45%, var(--ink-d) 78%),
-    url("img/lion-full.png");
-  background-size: auto, 155% auto;
-  background-position: center, 74% -4%;
-  background-repeat: no-repeat, no-repeat;
+    linear-gradient(96deg, var(--ink-d) 0%, rgba(11,15,18,.97) 44%,
+                           rgba(11,15,18,.55) 68%, rgba(11,15,18,.10) 100%),
+    linear-gradient(180deg, rgba(11,15,18,.30) 0%, rgba(11,15,18,.55) 45%,
+                            rgba(11,15,18,.94) 74%, var(--ink-d) 89%),
+    url("img/backdrop.webp");
+  background-size: auto, auto, min(118%, 1500px) auto;
+  background-position: center, center, 10% top;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+}
+/* On a phone the frame is far narrower than the photograph, so at 100% the
+   head shrinks to a stamp. Scaling up here is not the old mistake: the source
+   is a real 1280x720 and 1.6x of that is still under its native pixel count
+   on a 390px screen. Pushed right so it sits beside the headline, not under
+   it. */
+@media (max-width: 620px) {
+  .backdrop { background-size: auto, auto, 165% auto;
+              background-position: center, center, 18% -2%; }
 }
 
 .topbar { background: rgba(11,15,18,.86); border-bottom: 1px solid var(--line-d);
@@ -654,3 +687,123 @@ body { background: var(--ink-d); color: var(--text-d); }
 .sheet__head { border-bottom-color: var(--line-d); }
 .iconbtn { color: var(--dim-d); }
 .toast { background: var(--gold); color: var(--ink-d); font-weight: 700; }
+
+
+/* ==========================================================================
+   The four beats, the rating, and the way back.
+   ========================================================================== */
+
+.head { display: flex; align-items: baseline; justify-content: space-between;
+        gap: 12px; margin: 4px 0 18px; }
+.h1--sm { font: 800 clamp(26px,7vw,34px)/1 var(--display); letter-spacing: -.03em;
+          text-transform: uppercase; color: var(--text-d); margin: 0; }
+.lede--sm { font-size: .98rem; margin: -6px 0 20px; }
+
+/* A number that only goes up while he keeps turning up. */
+.streak {
+  flex: none; font: 700 12px/1 var(--body); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--gold-soft); border: 1px solid rgba(180,146,67,.45);
+  border-radius: 999px; padding: 7px 11px;
+}
+
+/* The one thing the app wants him to do, and it is the loudest thing on the
+   screen until he has done it. */
+.prompt {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: linear-gradient(180deg, #1D262E 0%, #141B21 100%);
+  border: 1px solid var(--gold); border-top: 3px solid var(--gold);
+  border-radius: var(--r-lg); padding: 20px; margin-bottom: 14px;
+  font: inherit; color: var(--text-d);
+}
+.prompt:hover { border-color: var(--gold-soft); }
+.prompt__t { display: block; font: 800 1.35rem/1.1 var(--display);
+             text-transform: uppercase; letter-spacing: -.02em; }
+.prompt__s { display: block; color: var(--dim-d); margin-top: 7px; font-size: .95rem; }
+.prompt__cta { display: block; color: var(--gold-soft); font-weight: 700;
+               margin-top: 14px; letter-spacing: .02em; }
+
+.card--done { border-left: 3px solid var(--gold); }
+
+/* His scores, read back to him as pips rather than numbers: the shape of the
+   row is legible at a glance and a bare "3" is not. */
+.dots { display: grid; gap: 9px; margin-top: 12px; }
+.dotrow { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.dotrow__l { font-size: .92rem; color: var(--dim-d); }
+.pips { display: flex; gap: 5px; }
+.pip { width: 9px; height: 9px; border-radius: 50%; background: var(--line-d); }
+.pip.is-on { background: var(--gold); }
+
+/* What the clinic has to say, chosen by his own scores. */
+.newscard {
+  display: block; width: 100%; text-align: left; cursor: pointer; font: inherit;
+  background: var(--panel-d); border: 1px solid var(--line-d);
+  border-left: 3px solid var(--gold-soft);
+  border-radius: var(--r-lg); padding: 18px 20px; margin-bottom: 14px; color: var(--text-d);
+}
+.newscard:hover { border-color: var(--gold); border-left-color: var(--gold); }
+.newscard__tag { display: block; font: 700 11px/1 var(--body); letter-spacing: .2em;
+                 text-transform: uppercase; color: var(--gold-soft); margin-bottom: 9px; }
+.newscard__t { display: block; font: 700 1.12rem/1.25 var(--display); letter-spacing: -.01em; }
+.newscard__b { display: block; color: var(--dim-d); margin-top: 6px; font-size: .95rem; }
+.newscard__cta { display: block; color: var(--gold-soft); font-weight: 700; margin-top: 12px; }
+
+/* The day, in order. Times in the data face so they line up as a column. */
+.beats { list-style: none; margin: 4px 0 0; padding: 0; }
+.beat { display: flex; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line-d); }
+.beat:last-child { border-bottom: 0; }
+.beat__time { flex: none; width: 58px; font: 600 .95rem/1.35 var(--data);
+              color: var(--gold-soft); letter-spacing: .01em; padding-top: 1px; }
+.beat__body { min-width: 0; }
+.beat__l { display: block; font-weight: 700; }
+.beat__h { display: block; color: var(--dim-d); font-size: .88rem; margin-top: 2px; }
+
+/* ---- the rating ---- */
+.rate { margin-bottom: 22px; }
+.rate__head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 9px; }
+.rate__l { font: 700 1.05rem/1 var(--display); letter-spacing: -.01em; }
+.rate__v { font: 600 .85rem/1 var(--data); color: var(--gold-soft); }
+.scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 7px; }
+.scale__b {
+  min-height: 52px; cursor: pointer;
+  background: var(--panel-d); border: 1px solid var(--line-d); border-radius: var(--r);
+  color: var(--dim-d); font: 700 1.05rem/1 var(--data);
+  transition: background .12s var(--ease), color .12s var(--ease), border-color .12s var(--ease);
+}
+.scale__b:hover { border-color: var(--gold-soft); }
+/* Filling up to the tap rather than lighting one button: a 4 should LOOK
+   like more than a 2 without having to read the number. */
+.scale__b.is-on { background: var(--gold); border-color: var(--gold); color: var(--ink-d); }
+.rate__ends { display: flex; justify-content: space-between; gap: 10px;
+              margin-top: 7px; font-size: .8rem; color: var(--dim-d); }
+
+/* ---- the tab bar ---- */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 4;
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  background: rgba(11,15,18,.94); border-top: 1px solid var(--line-d);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.tabbar[hidden] { display: none; }
+.tab {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-height: 56px; padding: 9px 4px 8px; cursor: pointer;
+  background: none; border: 0; border-top: 2px solid transparent;
+  color: var(--dim-d); font: 700 11px/1 var(--body);
+  letter-spacing: .1em; text-transform: uppercase;
+}
+.tab.is-on { color: var(--gold-soft); border-top-color: var(--gold); }
+main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+
+
+/* The front screen is a poster and gets the lion at full strength. Everything
+   behind it is a working screen with small text on it, so the picture drops
+   back. Verified with scripts/test/contrast.js on all four screens. */
+.is-inside .backdrop {
+  background-image:
+    linear-gradient(96deg, var(--ink-d) 0%, rgba(11,15,18,.98) 52%,
+                           rgba(11,15,18,.80) 74%, rgba(11,15,18,.42) 100%),
+    linear-gradient(180deg, rgba(11,15,18,.55) 0%, rgba(11,15,18,.78) 40%,
+                            rgba(11,15,18,.97) 68%, var(--ink-d) 84%),
+    url("img/backdrop.webp");
+}

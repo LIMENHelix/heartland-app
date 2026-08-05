@@ -335,6 +335,45 @@ async function threadFor(patientId) {
    Routes
    ========================================================================== */
 
+/* ---------------- free-app helpers ----------------
+
+   Both the app and the cron need to answer "what does this device get told
+   next", so it lives in one place rather than being written twice and drifting.  */
+
+/* The freshest live piece on his weakest topic that he has not already had.
+   Falls back to general, then to anything: an empty news table must not mean
+   a beat that fires with nothing in it. */
+async function pickNews(installId, topic) {
+  const tries = [topic, "general", null].filter(function (t, i, a) { return a.indexOf(t) === i; });
+  for (const t of tries) {
+    const rows = await db.q(
+      `SELECT n.* FROM news n
+        WHERE n.live = 1 ${t ? "AND n.topic = $2" : ""}
+          AND NOT EXISTS (SELECT 1 FROM news_sent s WHERE s.news_id = n.id AND s.install_id = $1)
+        ORDER BY n.created_at DESC LIMIT 1`,
+      t ? [installId, t] : [installId]);
+    if (rows.length) return rows[0];
+  }
+  return null;
+}
+
+/* Consecutive days scored, counting back from today. Shown to him because a
+   number that only goes up while he keeps turning up is the cheapest reason
+   to open an app there is. Yesterday counts as current: he has not broken
+   anything until today ends. */
+function rateStreak(rows, today) {
+  const have = {};
+  (rows || []).forEach(function (r) { have[r.day] = true; });
+  const step = function (d, back) {
+    const t = Date.parse(d + "T12:00:00Z") - back * 86400000;
+    return new Date(t).toISOString().slice(0, 10);
+  };
+  if (!have[today] && !have[step(today, 1)]) return 0;
+  let n = 0, i = have[today] ? 0 : 1;
+  while (have[step(today, i)]) { n++; i++; }
+  return n;
+}
+
 const routes = {
 
   /* ---------------- coordinator auth ---------------- */
@@ -997,15 +1036,74 @@ const routes = {
     const live = await db.one(
       "SELECT id, title, body, cta FROM specials WHERE live = 1 ORDER BY updated_at DESC NULLS LAST, id DESC");
 
+    const day = db.dayKey(now, row.tz_offset != null ? row.tz_offset : Number(b.tz) || 0);
+    const today = await db.one("SELECT * FROM ratings WHERE install_id = $1 AND day = $2", [row.id, day]);
+
+    /* His last fortnight, which is what picks the news he gets. Read here as
+       well as in the cron so the app can show him the same thing his phone
+       will say, rather than the two quietly disagreeing. */
+    const recent = await db.q(
+      "SELECT * FROM ratings WHERE install_id = $1 ORDER BY day DESC LIMIT 14", [row.id]);
+    const topic = db.weakestTopic(recent);
+    const news = await pickNews(row.id, topic);
+
     send(res, 200, {
       goals: JSON.parse(row.goals || "[]"),
-      times: JSON.parse(row.times || "{}"),
-      slots: db.DAILY_SLOTS.map(function (x) {
-        return { key: x.key, goal: x.goal, label: x.label, def: x.def };
-      }),
+      times: db.spaceBeats(JSON.parse(row.times || "{}")),
+      beats: db.BEATS,
+      rateFields: db.RATE_FIELDS,
+      rateMax: db.RATE_MAX,
+      minGapMin: db.MIN_GAP_MIN,
+      today: today || null,
+      day: day,
+      streak: rateStreak(recent, day),
+      rated: recent.length,
+      topic: topic,
+      feedback: topic ? (voice.RATE_FEEDBACK[topic] || null) : null,
+      news: news || null,
       special: live || null,
       textLine: db.TEXT_LINE,
       isNew: db.n(row.created_at) === now
+    });
+  },
+
+  /* Scoring the day. The one thing this app asks for, and the thing that makes
+     everything else it sends worth reading.
+
+     Overwrites rather than appends: a man who rates at 8pm and again at 11pm
+     has changed his mind, not had two days. */
+  "POST /api/f/rate": async function (req, res) {
+    const b = await readBody(req);
+    const row = await db.one("SELECT * FROM installs WHERE device_key = $1", [String(b.key || "")]);
+    if (!row) return send(res, 404, { error: "unknown install" });
+    const now = Date.now();
+    const tzo = Number(b.tz);
+    const day = db.dayKey(now, Number.isFinite(tzo) ? tzo : db.n(row.tz_offset) || 0);
+
+    const vals = {};
+    db.RATE_FIELDS.forEach(function (f) {
+      const v = Math.round(Number((b.scores || {})[f.key]));
+      vals[f.key] = Number.isFinite(v) && v >= 1 && v <= db.RATE_MAX ? v : null;
+    });
+    if (db.RATE_FIELDS.every(function (f) { return vals[f.key] === null; })) {
+      return send(res, 400, { error: "Nothing to save." });
+    }
+
+    await db.q(`INSERT INTO ratings (install_id, day, nutrition, water, movement, creatine, energy, note, at)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                ON CONFLICT (install_id, day) DO UPDATE SET
+                  nutrition = EXCLUDED.nutrition, water = EXCLUDED.water,
+                  movement = EXCLUDED.movement, creatine = EXCLUDED.creatine,
+                  energy = EXCLUDED.energy, note = EXCLUDED.note, at = EXCLUDED.at`,
+      [row.id, day, vals.nutrition, vals.water, vals.movement, vals.creatine, vals.energy,
+       String(b.note || "").slice(0, 600), now]);
+
+    const recent = await db.q(
+      "SELECT * FROM ratings WHERE install_id = $1 ORDER BY day DESC LIMIT 14", [row.id]);
+    const topic = db.weakestTopic(recent);
+    send(res, 200, {
+      ok: true, day: day, streak: rateStreak(recent, day), rated: recent.length,
+      topic: topic, feedback: topic ? (voice.RATE_FEEDBACK[topic] || null) : null
     });
   },
 
@@ -1015,11 +1113,15 @@ const routes = {
     if (!row) return send(res, 404, { error: "unknown install" });
     const okGoals = ["eat", "train", "sleep", "water"];
     const goals = (Array.isArray(b.goals) ? b.goals : []).filter(function (g) { return okGoals.indexOf(g) !== -1; });
-    const times = {};
-    db.DAILY_SLOTS.forEach(function (sl) {
-      const v = (b.times || {})[sl.key];
-      if (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || ""))) times[sl.key] = v;
+    const raw = {};
+    db.BEATS.forEach(function (bt) {
+      const v = (b.times || {})[bt.key];
+      if (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || ""))) raw[bt.key] = v;
     });
+    /* Spaced on the way in, not just in the UI. The whole reason there are
+       four of these is that they must not land on top of each other, and a
+       rule enforced only in the browser is not enforced. */
+    const times = db.spaceBeats(raw);
     await db.q("UPDATE installs SET goals = $1, times = $2, tz_offset = $3, last_seen_at = $4 WHERE id = $5",
       [JSON.stringify(goals), JSON.stringify(times), Number(b.tz) || 0, Date.now(), row.id]);
     send(res, 200, { ok: true, goals: goals, times: times });
@@ -1088,12 +1190,77 @@ const routes = {
       gaps.sort(function (a, b) { return a - b; });
       gapMin = Math.round(gaps[Math.floor(gaps.length / 2)] / 60000);
     }
+    const news = await db.q("SELECT * FROM news ORDER BY live DESC, created_at DESC LIMIT 60");
+    news.forEach(function (r) { r.created_at = db.n(r.created_at); r.updated_at = db.n(r.updated_at); });
+
+    /* How the free app is actually scoring itself, in aggregate.
+
+       This is the only view of it anybody gets, and it is deliberately a mean
+       and a count with no device attached: the app promises nothing is shared,
+       and a per-man breakdown here would make that a lie. What it is FOR is
+       deciding what to write next. If the men using it score movement 2.1,
+       that is what the next piece should be about. */
+    const scored = await db.one("SELECT COUNT(DISTINCT install_id)::int AS n FROM ratings");
+    const days = await db.one(
+      "SELECT COUNT(*)::int AS n FROM ratings WHERE at > $1", [now - 14 * DAY]);
+    const means = await db.one(`
+      SELECT ROUND(AVG(nutrition)::numeric, 1) AS nutrition,
+             ROUND(AVG(water)::numeric, 1)     AS water,
+             ROUND(AVG(movement)::numeric, 1)  AS movement,
+             ROUND(AVG(creatine)::numeric, 1)  AS creatine,
+             ROUND(AVG(energy)::numeric, 1)    AS energy
+        FROM ratings WHERE at > $1`, [now - 30 * DAY]);
+
     send(res, 200, {
       counts: { installs: installs.n, active7: active7.n, pushable: pushable.n,
+                scored: scored.n, ratedDays14: days.n,
                 newLeads: leads.filter(function (l) { return l.status === "new"; }).length },
-      leads: leads, specials: specials,
+      means: means || {},
+      rateFields: db.RATE_FIELDS.map(function (f) {
+        return { key: f.key, label: f.label, topic: f.topic };
+      }),
+      leads: leads, specials: specials, news: news,
       cron: { lastRun: runs.length ? runs[0].at : null, runs: runs.length, everyMinutes: gapMin }
     });
+  },
+
+  /* Writing what the free app sends. Tagged with a topic, which is the whole
+     mechanism: a man scoring his energy lowest gets the testosterone piece,
+     a man scoring movement lowest gets the movement one. Nobody is targeted
+     by anything except numbers he typed into his own phone. */
+  "POST /api/admin/news-save": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const b = await readBody(req);
+    const topics = db.RATE_FIELDS.map(function (f) { return f.topic; }).concat(["general"]);
+    const topic = topics.indexOf(String(b.topic || "")) !== -1 ? String(b.topic) : "general";
+    const title = String(b.title || "").trim().slice(0, 90);
+    const teaser = String(b.teaser || "").trim().slice(0, 160);
+    const body = String(b.body || "").trim().slice(0, 4000);
+    if (!title || !teaser || !body) {
+      return send(res, 400, { error: "A headline, a one-line teaser and the piece itself are all needed." });
+    }
+    const now = Date.now();
+    const live = b.live ? 1 : 0;
+    if (b.id) {
+      await db.q(`UPDATE news SET topic=$1, title=$2, teaser=$3, body=$4, cta=$5, live=$6, updated_at=$7
+                   WHERE id=$8`,
+        [topic, title, teaser, body, String(b.cta || "").slice(0, 60), live, now, Number(b.id)]);
+    } else {
+      await db.q(`INSERT INTO news (topic, title, teaser, body, cta, live, created_by, created_at, updated_at)
+                  VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$8)`,
+        [topic, title, teaser, body, String(b.cta || "").slice(0, 60), live, u.id, now]);
+    }
+    send(res, 200, { ok: true });
+  },
+
+  /* Taking a piece down. Not a delete: news_sent still points at it, and the
+     history of what a device was sent is worth more than a tidy table. */
+  "POST /api/admin/news-live": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const b = await readBody(req);
+    await db.q("UPDATE news SET live = $1, updated_at = $2 WHERE id = $3",
+               [b.live ? 1 : 0, Date.now(), Number(b.id)]);
+    send(res, 200, { ok: true });
   },
 
   "POST /api/admin/lead-status": async function (req, res) {
@@ -1160,11 +1327,16 @@ const routes = {
     send(res, 200, { sent: sent, failed: failed, of: devices.length });
   },
 
-  /* ---------------- the free app's reminders ----------------
+  /* ---------------- the free app's four beats ----------------
 
      Called on a schedule. Works out whose chosen time falls inside the window
      this run covers, and pushes once. reminder_log makes a second run in the
-     same window a no-op, so the schedule can be as eager as it likes. */
+     same window a no-op, so the schedule can be as eager as it likes.
+
+     This used to walk nine slots filtered by the goals he picked. It now walks
+     four, unfiltered, because the goals decide what a beat SAYS rather than
+     whether it fires. Three of the four are the same copy for everybody; the
+     news beat is the one that differs, and it differs by his own scores.  */
 
   "GET /api/cron/daily-reminders": async function (req, res) {
     const secret = process.env.CRON_SECRET;
@@ -1179,41 +1351,64 @@ const routes = {
        WHERE EXISTS (SELECT 1 FROM install_devices d WHERE d.install_id = i.id AND d.active = 1)`);
 
     const vapid = await getVapid();
-    let sent = 0, skipped = 0, failed = 0;
+    let sent = 0, skipped = 0, failed = 0, newsSent = 0, quiet = 0;
 
     for (const inst of rows) {
-      let goals = [], times = {};
-      try { goals = JSON.parse(inst.goals || "[]"); } catch (e) {}
+      let times = {};
       try { times = JSON.parse(inst.times || "{}"); } catch (e) {}
+      times = db.spaceBeats(times);
       const hm = db.localHM(now, inst.tz_offset);
       const day = db.dayKey(now, inst.tz_offset);
 
-      for (const slot of db.slotsForGoals(goals)) {
-        const at = times[slot.key] || slot.def;
-        if (!db.slotIsDue(at, hm, windowMin)) continue;
+      for (const beat of db.BEATS) {
+        if (!db.slotIsDue(times[beat.key] || beat.def, hm, windowMin)) continue;
 
         const already = await db.one(
           "SELECT 1 AS x FROM reminder_log WHERE install_id = $1 AND slot = $2 AND day = $3",
-          [inst.id, slot.key, day]);
+          [inst.id, beat.key, day]);
         if (already) { skipped++; continue; }
+
+        /* What this beat says. Three are copy; news comes out of the database
+           and is chosen by the last fortnight of his own scores. */
+        let copy = null, newsRow = null, link = "/daily/";
+        if (beat.key === "news") {
+          const recent = await db.q(
+            "SELECT * FROM ratings WHERE install_id = $1 ORDER BY day DESC LIMIT 14", [inst.id]);
+          newsRow = await pickNews(inst.id, db.weakestTopic(recent));
+          /* Nothing written and nothing general: stay silent. A beat that
+             fires with a placeholder in it teaches him to ignore the tag. */
+          if (!newsRow) { quiet++; continue; }
+          copy = { title: newsRow.title, body: newsRow.teaser };
+          link = "/daily/?news=" + newsRow.id;
+        } else {
+          copy = voice.freeMessage(beat.key, day, inst.device_key);
+          if (beat.key === "rate") link = "/daily/?screen=rate";
+        }
+
         await db.q("INSERT INTO reminder_log (install_id, slot, day, at) VALUES ($1,$2,$3,$4)",
-                   [inst.id, slot.key, day, now]);
+                   [inst.id, beat.key, day, now]);
+        if (newsRow) {
+          await db.q("INSERT INTO news_sent (install_id, news_id, at) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING",
+                     [inst.id, newsRow.id, now]);
+          await db.q("UPDATE news SET sends = sends + 1 WHERE id = $1", [newsRow.id]);
+          newsSent++;
+        }
 
         const devices = await db.q(
           "SELECT * FROM install_devices WHERE install_id = $1 AND active = 1", [inst.id]);
         for (const d of devices) {
           try {
-            const copy = voice.freeMessage(slot.key, day, inst.device_key);
             const r = await push.sendNotification(
               { endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } },
-              { title: copy.title, body: copy.body, tag: "hmh-" + slot.key, url: "/daily/" },
+              { title: copy.title, body: copy.body, tag: "hmh-" + beat.key, url: link },
               vapid, { ttl: 3600 * 6, urgency: "normal" });
             if (r.ok) sent++; else { failed++; if (r.gone) await db.q("UPDATE install_devices SET active = 0 WHERE id = $1", [d.id]); }
           } catch (e) { failed++; }
         }
       }
     }
-    const out = { installs: rows.length, sent: sent, skipped: skipped, failed: failed, window: windowMin };
+    const out = { installs: rows.length, sent: sent, news: newsSent, skipped: skipped,
+                  nothingToSay: quiet, failed: failed, window: windowMin };
     await db.q("INSERT INTO cron_runs (job, at, ms, result) VALUES ($1,$2,$3,$4)",
                ["daily-reminders", now, Date.now() - now, JSON.stringify(out)]);
     send(res, 200, out);

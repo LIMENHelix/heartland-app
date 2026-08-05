@@ -47,13 +47,23 @@ Object.keys(v.FREE).forEach(function (slot) {
 });
 ok("copy rotates across a week", stale.length === 0, stale.join(", "));
 
-/* And two men on the same day should not always get the identical line. */
+/* And two men on the same day should not always get the identical line.
+
+   Checks every beat that has variants to choose between, rather than naming
+   one. The version that named "train" kept passing until the slot was
+   removed, at which point freeMessage fell back to a single default and the
+   test reported one distinct line without knowing why. */
 const devices = ["a","b","c","d","e","f"];
-const spread = new Set(devices.map(function (d) {
-  const m = v.freeMessage("train", "2026-08-05", d);
-  return m.title + "|" + m.body;
-}));
-ok("different phones get different lines", spread.size >= 3, spread.size + " distinct across 6 devices");
+const flat = [];
+Object.keys(v.FREE).forEach(function (slot) {
+  if (v.FREE[slot].length < 3) return;
+  const spread = new Set(devices.map(function (d) {
+    const m = v.freeMessage(slot, "2026-08-05", d);
+    return m.title + "|" + m.body;
+  }));
+  if (spread.size < 3) flat.push(slot + " (" + spread.size + " across 6 phones)");
+});
+ok("different phones get different lines", flat.length === 0, flat.join(", "));
 
 /* Every slot the schedule can fire must have copy behind it. */
 const SLOTS = require("../../lib/db").DAILY_SLOTS.map(s => s.key);

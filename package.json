@@ -18,7 +18,10 @@
     "test:reminder": "node scripts/test/reminder.js",
     "test:password": "node scripts/test/password.js",
     "test:preview": "node scripts/test/preview.js",
-    "test:voice": "node scripts/test/voice.js"
+    "test:voice": "node scripts/test/voice.js",
+    "test:beats": "node scripts/test/beats.js",
+    "test:contrast": "node scripts/test/contrast.js",
+    "seed:news": "node scripts/seed-news.js"
   },
   "dependencies": {
     "pg": "^8.13.1"

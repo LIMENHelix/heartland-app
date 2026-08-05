@@ -677,6 +677,21 @@ body {
   --side-w: 236px;
 }
 
+  /* WHY THIS IS NOT `cover`.
+
+     The picture that was here came from the 192px app icon, upscaled to
+     1280x720 and then blown up AGAIN by `cover` to fill the viewport: about
+     ten times its real size. It did not read as a lion, it read as an orange
+     blur, and no CSS setting fixes a 192px source.
+
+     Two things changed. The source is a real 1280x720 photograph, and the
+     sizing is now capped instead of stretched. `cover` on a fixed full-height
+     layer is the worst case for a wide photo: a tall phone crops it to a
+     vertical sliver and magnifies whatever is left. Pinning it to the WIDTH,
+     capped at its native size and anchored to the bottom, means it is never
+     enlarged past 1:1 on a normal screen and the horizon always lands where
+     it was composed to land. Above it is flat page colour, which is what the
+     top of the frame nearly is anyway. */
 .backdrop {
   position: fixed;
   left: var(--side-w); right: 0; top: 0; bottom: 0;
@@ -687,8 +702,12 @@ body {
     linear-gradient(rgba(247, 243, 235, var(--backdrop-veil)),
                     rgba(247, 243, 235, var(--backdrop-veil))),
     url("img/backdrop.webp");
-  background-size: cover;
-  background-position: center center;
+  /* Bottom right, and small enough to sit in the gap under the content
+     rather than behind it. Full width put the lion's head exactly where the
+     cards are, so what showed was four legs and a tail: a headless animal
+     reads as a mistake, where a whole one in the corner reads as a choice. */
+  background-size: auto, min(62%, 820px) auto;
+  background-position: center, right -2% bottom -1%;
   background-repeat: no-repeat;
 }
 
@@ -823,3 +842,21 @@ body {
   font-size: .93rem; line-height: 1.45;
 }
 .cronbar--warn { background: #FBF3E6; border-color: var(--gold); color: var(--gold-deep); }
+
+
+/* ---- the free app's aggregate scores ----
+   Five columns, and the lowest one is called out, because the lowest one is
+   the piece that should be written next. */
+.meanrow { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+@media (max-width: 620px) { .meanrow { grid-template-columns: repeat(2, 1fr); } }
+.mean {
+  text-align: center; padding: 14px 8px; border-radius: var(--r);
+  background: var(--cream); border: 1px solid var(--line);
+}
+.mean--low { border-color: var(--gold); background: #FBF4E4; }
+.mean__v { display: block; font: 700 1.55rem/1 var(--data); color: var(--navy); }
+.mean__l { display: block; font-size: 12.5px; color: var(--muted); margin-top: 5px; }
+.mean__tag { display: block; font: 700 10px/1.3 var(--body); letter-spacing: .1em;
+             text-transform: uppercase; color: var(--gold-deep); margin-top: 7px; }
+.card--off { opacity: .62; }
+.textarea--tall { min-height: 210px; }

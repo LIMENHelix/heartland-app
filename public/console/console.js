@@ -18,7 +18,7 @@ let CHECKINS = [];
 let CK_SYMPTOMS = [];
 let CK_FIELDS = [];
 let SIGNUPS = [];
-let DAILY = { counts: {}, leads: [], specials: [] };
+let DAILY = { counts: {}, leads: [], specials: [], news: [], rateFields: [], means: {} };
 let CK_MAX = 10;
 let UNASSIGNED = 0;
 /* Which panel the console is looking at. A coordinator only ever has their
@@ -1076,10 +1076,32 @@ function viewDaily() {
 
   h += '<div class="stats">' +
     stat(c.installs || 0, "installs") +
-    stat(c.active7 || 0, "opened it this week") +
     stat(c.pushable || 0, "can be pushed to") +
+    stat(c.scored || 0, "scoring their days") +
     stat(c.newLeads || 0, "new leads", c.newLeads ? "stat--urgent" : "") +
   "</div>";
+
+  /* What the men using it say about themselves, in aggregate. This is what
+     decides what to write next: the lowest column is the piece to publish. */
+  if (c.scored) {
+    var mn = DAILY.means || {}, fields = DAILY.rateFields || [];
+    var vals = fields.map(function (f) { return Number(mn[f.key]); })
+                     .filter(function (v) { return v > 0; });
+    var worst = vals.length ? Math.min.apply(null, vals) : null;
+    h += '<div class="card"><p class="h3">How they are scoring themselves</p>' +
+      '<p class="sub" style="margin:-4px 0 14px">Average out of 5, last 30 days, across ' +
+      (c.ratedDays14 || 0) + ' days scored in the last fortnight. Nobody is named: the app ' +
+      'promises that and this view keeps it.</p><div class="meanrow">';
+    fields.forEach(function (f) {
+      var v = Number(mn[f.key]);
+      var low = v > 0 && v === worst;
+      h += '<div class="mean' + (low ? " mean--low" : "") + '">' +
+        '<span class="mean__v">' + (v > 0 ? v.toFixed(1) : "\u2014") + "</span>" +
+        '<span class="mean__l">' + esc(f.label) + "</span>" +
+        (low ? '<span class="mean__tag">write this one</span>' : "") + "</div>";
+    });
+    h += "</div></div>";
+  }
 
   h += '<div class="notice"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.2v4.4M10 13.4v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
     "<p>Share <strong>" + esc(location.host) + "/daily</strong>. Nobody gives you anything to install it, " +
@@ -1108,6 +1130,30 @@ function viewDaily() {
     h += '<p class="eyebrow" style="margin-top:22px">Handled \u00b7 ' + rest.length + "</p>";
     rest.slice(0, 20).forEach(function (l) { h += leadCard(l); });
   }
+
+  /* ---- news ---- */
+  h += '<div class="head" style="margin-top:26px"><p class="eyebrow" style="margin:0">' +
+       'What the app sends \u00b7 ' + DAILY.news.length + "</p>" +
+       '<button class="btn btn--outline btn--sm" data-act="news-new">Write a piece</button></div>';
+  if (!DAILY.news.length) {
+    h += '<div class="card"><div class="empty">Nothing written. Until there is, the ' +
+         '<strong>From Heartland</strong> nudge stays silent rather than firing with a ' +
+         "placeholder in it. Write one piece per topic and it starts working.</div></div>";
+  }
+  DAILY.news.forEach(function (nw) {
+    h += '<div class="card' + (nw.live ? "" : " card--off") + '">' +
+      '<div class="ckhead"><div><p class="ckname">' + esc(nw.title) +
+        ' <span class="pill pill--soft">' + esc(nw.topic) + "</span>" +
+        (nw.live ? "" : ' <span class="pill">Off</span>') + "</p>" +
+        '<p class="sub">' + esc(nw.teaser) + "</p></div></div>" +
+      '<p class="sub" style="margin:10px 0 14px">Sent ' + (nw.sends || 0) +
+        (nw.sends === 1 ? " time" : " times") + "</p>" +
+      '<div class="ckacts">' +
+        '<button class="btn btn--outline btn--sm" data-act="news-edit" data-id="' + nw.id + '">Edit</button>' +
+        '<button class="btn btn--ghost btn--sm" data-act="news-live" data-id="' + nw.id +
+          '" data-v="' + (nw.live ? 0 : 1) + '">' + (nw.live ? "Take it down" : "Put it live") +
+        "</button></div></div>";
+  });
 
   h += '<p class="eyebrow" style="margin-top:26px">Specials</p>';
   if (!DAILY.specials.length) {
@@ -1155,6 +1201,59 @@ async function leadStatus(id, status) {
     await api("/api/admin/lead-status", { id: Number(id), status: status });
     await refresh(); render(); toast("Updated.");
   } catch (e) { toast(e.message); }
+}
+
+/* The topic is the only field that does anything mechanical, so it is first
+   and it explains itself. Everything else is writing. */
+function newsModal(id) {
+  var isNew = id === "new";
+  var nw = isNew ? { live: 1, topic: "general" }
+                 : DAILY.news.filter(function (x) { return String(x.id) === String(id); })[0];
+  if (!nw) return;
+  var topics = (DAILY.rateFields || []).map(function (f) {
+    return { v: f.topic, l: f.label };
+  }).concat([{ v: "general", l: "Anyone" }]);
+
+  var h = field("Who gets it",
+    '<select class="select" data-f="topic">' +
+      topics.map(function (t) {
+        return '<option value="' + t.v + '"' + (nw.topic === t.v ? " selected" : "") + ">" +
+               esc(t.l) + "</option>";
+      }).join("") + "</select>" +
+    '<span class="field__h">Men whose lowest score over the last fortnight is this one. ' +
+    '"Anyone" is the fallback when nothing more specific fits him.</span>');
+  h += field("Headline", '<input class="input" data-f="title" maxlength="90" value="' +
+    esc(nw.title || "") + '" placeholder="Tired is not the same as low">' +
+    '<span class="field__h">This is what lands on his lock screen. Keep it under about 40 characters.</span>');
+  h += field("The one line under it", '<input class="input" data-f="teaser" maxlength="160" value="' +
+    esc(nw.teaser || "") + '" placeholder="Three things worth ruling out first.">');
+  h += field("The piece itself", '<textarea class="textarea textarea--tall" data-f="body">' +
+    esc(nw.body || "") + "</textarea>" +
+    '<span class="field__h">What he reads when he taps it. Plain language, no diagnosis, ' +
+    "and nothing that reads as advice for him specifically.</span>");
+  h += field("Button at the bottom", '<input class="input" data-f="cta" maxlength="60" value="' +
+    esc(nw.cta || "") + '" placeholder="Have someone call me">' +
+    '<span class="field__h">Leave it empty and the piece ends without an ask.</span>');
+  h += field("Live", '<select class="select" data-f="live">' +
+    '<option value="1"' + (nw.live ? " selected" : "") + ">Yes, it can be sent</option>" +
+    '<option value="0"' + (nw.live ? "" : " selected") + ">No, keep it as a draft</option></select>");
+  h += '<button class="btn btn--primary btn--full" id="nwSave">' + (isNew ? "Save it" : "Save") + "</button>";
+
+  openModal(isNew ? "Write a piece" : "Edit", h, function (root) {
+    $("#nwSave", root).addEventListener("click", async function () {
+      var p = { id: isNew ? null : nw.id };
+      $$("[data-f]", root).forEach(function (el) { p[el.dataset.f] = el.value; });
+      p.live = p.live === "1" ? 1 : 0;
+      try { await api("/api/admin/news-save", p); closeModal(); await refresh(); render(); toast("Saved."); }
+      catch (e) { toast(e.message); }
+    });
+  });
+}
+
+async function newsLive(id, v) {
+  try { await api("/api/admin/news-live", { id: Number(id), live: Number(v) });
+        await refresh(); render(); toast(Number(v) ? "Live." : "Taken down."); }
+  catch (e) { toast(e.message); }
 }
 
 function specialModal(id) {
@@ -1975,6 +2074,9 @@ document.addEventListener("click", function (e) {
   if (a === "setup") { closeModal(); return setupModal(act.dataset.id); }
   if (a === "pview") { closeModal(); return patientView(act.dataset.id); }
   if (a === "pdel") return deletePatient(act.dataset.id);
+  if (a === "news-new") return newsModal("new");
+  if (a === "news-edit") return newsModal(act.dataset.id);
+  if (a === "news-live") return newsLive(act.dataset.id, act.dataset.v);
   if (a === "lead") return leadStatus(act.dataset.id, act.dataset.s);
   if (a === "special-new") return specialModal("new");
   if (a === "special-edit") return specialModal(act.dataset.id);
