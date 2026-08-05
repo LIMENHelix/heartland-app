@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Heartland Daily</title>
+<meta name="description" content="Eat, train and sleep on a schedule. Free, from Heartland Men's Health.">
+<meta name="theme-color" content="#21313B">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="img/mark.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Daily">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Raleway:wght@700;800&family=PT+Sans:wght@400;700&family=Bai+Jamjuree:wght@600;700&display=swap">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<header class="topbar">
+  <img class="mark" src="img/mark.png" width="30" height="30" alt="">
+  <span class="topbar__t">Heartland Daily</span>
+</header>
+
+<main id="main"></main>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet__scrim" data-close></div>
+  <div class="sheet__panel" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet__head">
+      <h2 class="h2" id="sheetTitle"></h2>
+      <button class="iconbtn" data-close aria-label="Close">
+        <svg viewBox="0 0 20 20" width="19" height="19" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="sheet__body" id="sheetBody"></div>
+  </div>
+</div>
+
+<script src="daily.js"></script>
+</body>
+</html>

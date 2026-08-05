@@ -1,0 +1,16 @@
+{
+  "name": "Heartland Daily",
+  "short_name": "Daily",
+  "description": "Eat, train and sleep on a schedule. From Heartland Men's Health.",
+  "start_url": "/daily/",
+  "scope": "/daily/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F7F3EB",
+  "theme_color": "#21313B",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

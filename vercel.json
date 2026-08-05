@@ -20,9 +20,18 @@
       "source": "/pricing",
       "destination": "/pricing/",
       "permanent": false
+    },
+    {
+      "source": "/daily",
+      "destination": "/daily/",
+      "permanent": false
     }
   ],
   "rewrites": [
+    {
+      "source": "/daily/",
+      "destination": "/daily/index.html"
+    },
     {
       "source": "/console/",
       "destination": "/console/index.html"
@@ -101,12 +110,29 @@
           "value": "/app/"
         }
       ]
+    },
+    {
+      "source": "/daily/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/daily/"
+        }
+      ]
     }
   ],
   "crons": [
     {
       "path": "/api/cron/checkin-reminder",
       "schedule": "30 1 * * *"
+    },
+    {
+      "path": "/api/cron/daily-reminders",
+      "schedule": "*/15 * * * *"
     }
   ]
 }

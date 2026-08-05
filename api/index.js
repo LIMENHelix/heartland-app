@@ -965,6 +965,240 @@ const routes = {
     });
   },
 
+
+  /* ==========================================================================
+     The free app  (/api/f/*)
+
+     No account, no sign-in, no PHI. A phone generates a random key, keeps it,
+     and sends it with every request. That key identifies a device so a reminder
+     can reach it; it identifies nobody. Anyone can call these, which is fine,
+     because the worst a stranger can do with someone else's key is change the
+     time their own breakfast reminder fires.
+     ========================================================================== */
+
+  "POST /api/f/hello": async function (req, res) {
+    const b = await readBody(req);
+    const key = String(b.key || "").trim();
+    if (!/^[A-Za-z0-9_-]{16,64}$/.test(key)) return send(res, 400, { error: "bad key" });
+    const now = Date.now();
+
+    let row = await db.one("SELECT * FROM installs WHERE device_key = $1", [key]);
+    if (!row) {
+      row = await db.one(`INSERT INTO installs (device_key, goals, times, tz_offset, created_at, last_seen_at, opens)
+                          VALUES ($1,'[]','{}',$2,$3,$3,1) RETURNING *`,
+        [key, Number(b.tz) || 0, now]);
+    } else {
+      await db.q("UPDATE installs SET last_seen_at = $1, opens = opens + 1, tz_offset = $2 WHERE id = $3",
+                 [now, Number(b.tz) || 0, row.id]);
+    }
+
+    const live = await db.one(
+      "SELECT id, title, body, cta FROM specials WHERE live = 1 ORDER BY updated_at DESC NULLS LAST, id DESC");
+
+    send(res, 200, {
+      goals: JSON.parse(row.goals || "[]"),
+      times: JSON.parse(row.times || "{}"),
+      slots: db.DAILY_SLOTS.map(function (x) {
+        return { key: x.key, goal: x.goal, label: x.label, def: x.def };
+      }),
+      special: live || null,
+      textLine: db.TEXT_LINE,
+      isNew: db.n(row.created_at) === now
+    });
+  },
+
+  "POST /api/f/prefs": async function (req, res) {
+    const b = await readBody(req);
+    const row = await db.one("SELECT id FROM installs WHERE device_key = $1", [String(b.key || "")]);
+    if (!row) return send(res, 404, { error: "unknown install" });
+    const okGoals = ["eat", "train", "sleep", "water"];
+    const goals = (Array.isArray(b.goals) ? b.goals : []).filter(function (g) { return okGoals.indexOf(g) !== -1; });
+    const times = {};
+    db.DAILY_SLOTS.forEach(function (sl) {
+      const v = (b.times || {})[sl.key];
+      if (/^([01]\d|2[0-3]):[0-5]\d$/.test(String(v || ""))) times[sl.key] = v;
+    });
+    await db.q("UPDATE installs SET goals = $1, times = $2, tz_offset = $3, last_seen_at = $4 WHERE id = $5",
+      [JSON.stringify(goals), JSON.stringify(times), Number(b.tz) || 0, Date.now(), row.id]);
+    send(res, 200, { ok: true, goals: goals, times: times });
+  },
+
+  "GET /api/f/config": async function (req, res) {
+    const v = await getVapid();
+    send(res, 200, { vapidPublicKey: v.publicKey });
+  },
+
+  "POST /api/f/subscribe": async function (req, res) {
+    const b = await readBody(req);
+    const row = await db.one("SELECT id FROM installs WHERE device_key = $1", [String(b.key || "")]);
+    if (!row) return send(res, 404, { error: "unknown install" });
+    const sub = b.subscription || {};
+    if (!sub.endpoint || !sub.keys) return send(res, 400, { error: "bad subscription" });
+    await db.q(`INSERT INTO install_devices (install_id, endpoint, p256dh, auth, active, created_at)
+                VALUES ($1,$2,$3,$4,1,$5)
+                ON CONFLICT (endpoint) DO UPDATE SET install_id = EXCLUDED.install_id,
+                  p256dh = EXCLUDED.p256dh, auth = EXCLUDED.auth, active = 1`,
+      [row.id, sub.endpoint, sub.keys.p256dh, sub.keys.auth, Date.now()]);
+    send(res, 200, { ok: true });
+  },
+
+  /* The one moment anything personal is taken, and only because he typed it in
+     to be contacted about something he tapped. */
+  "POST /api/f/lead": async function (req, res) {
+    const b = await readBody(req);
+    const phone = String(b.phone || "").trim();
+    const email = String(b.email || "").trim();
+    if (db.phoneKey(phone).length < 10 && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return send(res, 400, { error: "Give a mobile number or an email so we can reach you." });
+    }
+    const inst = await db.one("SELECT id FROM installs WHERE device_key = $1", [String(b.key || "")]);
+    const now = Date.now();
+    await db.q(`INSERT INTO leads (install_id, name, phone, email, about, note, status, at, updated_at)
+                VALUES ($1,$2,$3,$4,$5,$6,'new',$7,$7)`,
+      [inst ? inst.id : null, String(b.name || "").trim().slice(0, 120), phone, email,
+       String(b.about || "").slice(0, 120), String(b.note || "").slice(0, 600), now]);
+    send(res, 200, { ok: true });
+  },
+
+  /* ---------------- the free app, clinic side ---------------- */
+
+  "GET /api/admin/daily": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const now = Date.now(), DAY = db.DAY;
+    const installs = await db.one("SELECT COUNT(*)::int AS n FROM installs");
+    const active7 = await db.one("SELECT COUNT(*)::int AS n FROM installs WHERE last_seen_at > $1", [now - 7 * DAY]);
+    const pushable = await db.one(
+      "SELECT COUNT(DISTINCT install_id)::int AS n FROM install_devices WHERE active = 1");
+    const leads = await db.q("SELECT * FROM leads ORDER BY (status = 'new') DESC, at DESC LIMIT 100");
+    leads.forEach(function (r) { r.at = db.n(r.at); r.updated_at = db.n(r.updated_at); });
+    const specials = await db.q("SELECT * FROM specials ORDER BY live DESC, id DESC LIMIT 30");
+    specials.forEach(function (r) { r.pushed_at = db.n(r.pushed_at); });
+    send(res, 200, {
+      counts: { installs: installs.n, active7: active7.n, pushable: pushable.n,
+                newLeads: leads.filter(function (l) { return l.status === "new"; }).length },
+      leads: leads, specials: specials
+    });
+  },
+
+  "POST /api/admin/lead-status": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const b = await readBody(req);
+    const ok = ["new", "contacted", "booked", "closed"];
+    if (ok.indexOf(b.status) === -1) return send(res, 400, { error: "Unknown status." });
+    await db.q("UPDATE leads SET status = $1, claimed_by = $2, note = COALESCE($3, note), updated_at = $4 WHERE id = $5",
+      [b.status, u.id, b.note === undefined ? null : String(b.note).slice(0, 600), Date.now(), b.id]);
+    send(res, 200, { ok: true });
+  },
+
+  "POST /api/admin/special-save": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const b = await readBody(req);
+    if (!b.title || !b.body) return send(res, 400, { error: "A title and body are required." });
+    const now = Date.now();
+    if (b.id) {
+      await db.q("UPDATE specials SET title=$1, body=$2, cta=$3, live=$4, updated_at=$5 WHERE id=$6",
+        [b.title, b.body, b.cta || null, b.live ? 1 : 0, now, b.id]);
+      /* Only one can be the live one, or the app has to guess. */
+      if (b.live) await db.q("UPDATE specials SET live = 0 WHERE id <> $1", [b.id]);
+      return send(res, 200, { id: Number(b.id) });
+    }
+    const row = await db.one(`INSERT INTO specials (title, body, cta, live, created_by, created_at, updated_at)
+                              VALUES ($1,$2,$3,$4,$5,$6,$6) RETURNING id`,
+      [b.title, b.body, b.cta || null, b.live ? 1 : 0, u.id, now]);
+    if (b.live) await db.q("UPDATE specials SET live = 0 WHERE id <> $1", [row.id]);
+    send(res, 200, { id: row.id });
+  },
+
+  /* Pushing a special is REACH: it lands on every phone that installed this.
+     Rate-limited to once a day, because the fastest way to lose an audience is
+     to notify it twice on a Tuesday. */
+  "POST /api/admin/special-push": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const b = await readBody(req);
+    const sp = await db.one("SELECT * FROM specials WHERE id = $1", [b.id]);
+    if (!sp) return send(res, 404, { error: "No such special." });
+
+    const now = Date.now();
+    const recent = await db.one(
+      "SELECT MAX(pushed_at) AS t FROM specials WHERE pushed_at IS NOT NULL");
+    const last = db.n(recent && recent.t);
+    if (last && now - last < 20 * 3600 * 1000) {
+      return send(res, 429, {
+        error: "A special already went out in the last 20 hours. Two in a day is how people turn notifications off." });
+    }
+
+    const devices = await db.q("SELECT * FROM install_devices WHERE active = 1");
+    const vapid = await getVapid();
+    let sent = 0, failed = 0;
+    for (const d of devices) {
+      try {
+        const r = await push.sendNotification(
+          { endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } },
+          { title: sp.title, body: sp.body, tag: "hmh-special-" + sp.id, url: "/daily/?s=" + sp.id },
+          vapid, { ttl: 86400 * 2, urgency: "normal" });
+        if (r.ok) sent++; else { failed++; if (r.gone) await db.q("UPDATE install_devices SET active = 0 WHERE id = $1", [d.id]); }
+      } catch (e) { failed++; }
+    }
+    await db.q("UPDATE specials SET pushed_at = $1, live = 1, updated_at = $1 WHERE id = $2", [now, sp.id]);
+    await db.q("UPDATE specials SET live = 0 WHERE id <> $1", [sp.id]);
+    send(res, 200, { sent: sent, failed: failed, of: devices.length });
+  },
+
+  /* ---------------- the free app's reminders ----------------
+
+     Called on a schedule. Works out whose chosen time falls inside the window
+     this run covers, and pushes once. reminder_log makes a second run in the
+     same window a no-op, so the schedule can be as eager as it likes. */
+
+  "GET /api/cron/daily-reminders": async function (req, res) {
+    const secret = process.env.CRON_SECRET;
+    const auth = req.headers.authorization || "";
+    if (!secret) return send(res, 503, { error: "CRON_SECRET is not configured." });
+    if (auth !== "Bearer " + secret) return send(res, 401, { error: "Not authorized." });
+
+    const now = Date.now();
+    const windowMin = Number(url(req).searchParams.get("window")) || 20;
+    const rows = await db.q(`
+      SELECT i.* FROM installs i
+       WHERE EXISTS (SELECT 1 FROM install_devices d WHERE d.install_id = i.id AND d.active = 1)`);
+
+    const vapid = await getVapid();
+    let sent = 0, skipped = 0, failed = 0;
+
+    for (const inst of rows) {
+      let goals = [], times = {};
+      try { goals = JSON.parse(inst.goals || "[]"); } catch (e) {}
+      try { times = JSON.parse(inst.times || "{}"); } catch (e) {}
+      const hm = db.localHM(now, inst.tz_offset);
+      const day = db.dayKey(now, inst.tz_offset);
+
+      for (const slot of db.slotsForGoals(goals)) {
+        const at = times[slot.key] || slot.def;
+        if (!db.slotIsDue(at, hm, windowMin)) continue;
+
+        const already = await db.one(
+          "SELECT 1 AS x FROM reminder_log WHERE install_id = $1 AND slot = $2 AND day = $3",
+          [inst.id, slot.key, day]);
+        if (already) { skipped++; continue; }
+        await db.q("INSERT INTO reminder_log (install_id, slot, day, at) VALUES ($1,$2,$3,$4)",
+                   [inst.id, slot.key, day, now]);
+
+        const devices = await db.q(
+          "SELECT * FROM install_devices WHERE install_id = $1 AND active = 1", [inst.id]);
+        for (const d of devices) {
+          try {
+            const r = await push.sendNotification(
+              { endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } },
+              { title: slot.title, body: slot.body, tag: "hmh-" + slot.key, url: "/daily/" },
+              vapid, { ttl: 3600 * 6, urgency: "normal" });
+            if (r.ok) sent++; else { failed++; if (r.gone) await db.q("UPDATE install_devices SET active = 0 WHERE id = $1", [d.id]); }
+          } catch (e) { failed++; }
+        }
+      }
+    }
+    send(res, 200, { installs: rows.length, sent: sent, skipped: skipped, failed: failed, window: windowMin });
+  },
+
   /* ---------------- the evening nudge ----------------
 
      A daily habit that nobody prompts lasts about a week. Vercel calls this

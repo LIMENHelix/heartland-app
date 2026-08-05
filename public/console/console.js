@@ -18,6 +18,7 @@ let CHECKINS = [];
 let CK_SYMPTOMS = [];
 let CK_FIELDS = [];
 let SIGNUPS = [];
+let DAILY = { counts: {}, leads: [], specials: [] };
 let CK_MAX = 10;
 let UNASSIGNED = 0;
 /* Which panel the console is looking at. A coordinator only ever has their
@@ -262,13 +263,14 @@ function stopPulse() { if (pulseTimer) { clearInterval(pulseTimer); pulseTimer =
    ========================================================================== */
 
 async function refresh() {
-  const [b, p, a, i, k, su, c, L] = await Promise.all([
+  const [b, p, a, i, k, su, dy, c, L] = await Promise.all([
     api(scoped("/api/admin/board")),
     api(scoped("/api/admin/patients")),
     api("/api/admin/articles"),
     api(scoped("/api/admin/inbox")),
     api(scoped("/api/admin/checkins")),
     api("/api/admin/signups"),
+    api("/api/admin/daily"),
     api("/api/admin/coordinators"),
     api("/api/admin/lists")
   ]);
@@ -281,6 +283,9 @@ async function refresh() {
   CK_FIELDS = k.fields || [];
   CK_MAX = k.scaleMax || 10;
   SIGNUPS = su.signups;
+  DAILY = dy;
+  const leadBadge = $("#navLeadCount");
+  if (leadBadge) leadBadge.textContent = dy.counts.newLeads ? String(dy.counts.newLeads) : "";
   const suBadge = $("#navSignupCount");
   if (suBadge) suBadge.textContent = SIGNUPS.length ? String(SIGNUPS.length) : "";
   COORDS = c.coordinators;
@@ -316,6 +321,7 @@ function render() {
   if (VIEW === "patients") m.innerHTML = viewPatients();
   if (VIEW === "compose") { m.innerHTML = viewCompose(); wireCompose(); }
   if (VIEW === "articles") m.innerHTML = viewArticles();
+  if (VIEW === "daily") m.innerHTML = viewDaily();
   if (VIEW === "signups") m.innerHTML = viewSignups();
   if (VIEW === "checkins") m.innerHTML = viewCheckins();
   if (VIEW === "team") { m.innerHTML = viewTeam(); wireTeam(); }
@@ -1035,6 +1041,135 @@ function articleModal(id) {
 
 
 
+
+
+/* ==========================================================================
+   The free app.
+
+   People who installed Heartland Daily. They are not patients and nothing here
+   is clinical: an install is an anonymous device, and a name exists only
+   because somebody asked to be called. Which is why this view is about leads
+   and reach rather than records.
+   ========================================================================== */
+
+function viewDaily() {
+  var c = DAILY.counts || {};
+  var h = '<div class="head"><div><p class="eyebrow">Heartland Daily</p>' +
+          '<h1 class="h1">The free app</h1></div>' +
+          '<button class="btn btn--primary btn--sm" data-act="special-new">Write a special</button></div>';
+
+  h += '<div class="stats">' +
+    stat(c.installs || 0, "installs") +
+    stat(c.active7 || 0, "opened it this week") +
+    stat(c.pushable || 0, "can be pushed to") +
+    stat(c.newLeads || 0, "new leads", c.newLeads ? "stat--urgent" : "") +
+  "</div>";
+
+  h += '<div class="notice"><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 6.2v4.4M10 13.4v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
+    "<p>Share <strong>" + esc(location.host) + "/daily</strong>. Nobody gives you anything to install it, " +
+    "so most of these stay anonymous. The ones below asked to be called.</p></div>";
+
+  var open = DAILY.leads.filter(function (l) { return l.status === "new"; });
+  var rest = DAILY.leads.filter(function (l) { return l.status !== "new"; });
+  h += '<p class="eyebrow" style="margin-top:22px">Asked to be called \u00b7 ' + open.length + "</p>";
+  if (!open.length) h += '<div class="card"><div class="empty">Nobody waiting.</div></div>';
+  open.forEach(function (l) { h += leadCard(l); });
+
+  if (rest.length) {
+    h += '<p class="eyebrow" style="margin-top:22px">Handled \u00b7 ' + rest.length + "</p>";
+    rest.slice(0, 20).forEach(function (l) { h += leadCard(l); });
+  }
+
+  h += '<p class="eyebrow" style="margin-top:26px">Specials</p>';
+  if (!DAILY.specials.length) {
+    h += '<div class="card"><div class="empty">Nothing written yet. A special shows at the top of ' +
+         "everyone's app, and you can push it to their lock screens once it is live.</div></div>";
+  }
+  DAILY.specials.forEach(function (sp) {
+    h += '<div class="card' + (sp.live ? " card--flag" : "") + '">' +
+      '<div class="ckhead"><div><p class="ckname">' + esc(sp.title) +
+        (sp.live ? ' <span class="pill">Live</span>' : "") + "</p>" +
+        '<p class="sub">' + (sp.pushed_at ? "pushed " + esc(fmtWhen(sp.pushed_at)) : "never pushed") + "</p></div></div>" +
+      '<p style="margin:0 0 14px">' + esc(sp.body) + "</p>" +
+      '<div class="ckacts">' +
+        '<button class="btn btn--outline btn--sm" data-act="special-edit" data-id="' + sp.id + '">Edit</button>' +
+        '<button class="btn btn--primary btn--sm" data-act="special-push" data-id="' + sp.id +
+          '">Push to every phone</button></div></div>';
+  });
+  return h;
+}
+
+function leadCard(l) {
+  var badge = { "new": "", contacted: "Contacted", booked: "Booked", closed: "Closed" }[l.status] || l.status;
+  return '<div class="card' + (l.status === "new" ? " card--flag" : "") + '">' +
+    '<div class="ckhead"><div>' +
+      '<p class="ckname">' + esc(l.name || "No name given") +
+        (badge ? ' <span class="pill pill--soft">' + esc(badge) + "</span>" : "") + "</p>" +
+      '<p class="sub">' + esc(fmtWhen(l.at)) +
+        (l.about === "special" ? " \u00b7 about the special" : " \u00b7 wants a call") + "</p></div></div>" +
+    '<div class="claimed">' + claimRow("Mobile", l.phone || "\u2014") +
+      claimRow("Email", l.email || "\u2014") + "</div>" +
+    (l.note ? '<blockquote class="cknote">' + esc(l.note) + "</blockquote>" : "") +
+    '<div class="ckacts" style="margin-top:14px">' +
+      (l.phone ? '<a class="btn btn--primary btn--sm" href="tel:' +
+        esc(String(l.phone).replace(/[^0-9+]/g, "")) + '">Call him</a>' : "") +
+      (l.status === "new"
+        ? '<button class="btn btn--outline btn--sm" data-act="lead" data-id="' + l.id + '" data-s="contacted">Mark contacted</button>'
+        : "") +
+      '<button class="btn btn--outline btn--sm" data-act="lead" data-id="' + l.id + '" data-s="booked">Booked</button>' +
+      '<button class="btn btn--ghost btn--sm" data-act="lead" data-id="' + l.id + '" data-s="closed">Not interested</button>' +
+    "</div></div>";
+}
+
+async function leadStatus(id, status) {
+  try {
+    await api("/api/admin/lead-status", { id: Number(id), status: status });
+    await refresh(); render(); toast("Updated.");
+  } catch (e) { toast(e.message); }
+}
+
+function specialModal(id) {
+  var isNew = id === "new";
+  var sp = isNew ? { live: 1 } : DAILY.specials.filter(function (x) { return String(x.id) === String(id); })[0];
+  if (!sp) return;
+  var h = field("Headline", '<input class="input" data-f="title" value="' + esc(sp.title || "") +
+    '" placeholder="First visit, $99">');
+  h += field("What it says", '<textarea class="textarea" data-f="body">' + esc(sp.body || "") + "</textarea>" +
+    '<span class="field__h">The whole offer. It shows at the top of the free app, and it is what lands on a lock screen if you push it.</span>');
+  h += field("Button wording", '<input class="input" data-f="cta" value="' + esc(sp.cta || "") +
+    '" placeholder="Have someone call me">');
+  h += field("Show it in the app", '<select class="select" data-f="live">' +
+    '<option value="1"' + (sp.live ? " selected" : "") + ">Yes, this is the current one</option>" +
+    '<option value="0"' + (sp.live ? "" : " selected") + ">No, keep it as a draft</option></select>" +
+    '<span class="field__h">Only one can be current. Setting this one takes the other down.</span>');
+  h += '<button class="btn btn--primary btn--full" id="spSave">' + (isNew ? "Save it" : "Save") + "</button>";
+  openModal(isNew ? "Write a special" : "Edit special", h, function (root) {
+    $("#spSave", root).addEventListener("click", async function () {
+      var p = { id: isNew ? null : sp.id };
+      $$("[data-f]", root).forEach(function (el) { p[el.dataset.f] = el.value; });
+      p.live = p.live === "1" ? 1 : 0;
+      if (!p.title || !p.body) return toast("A headline and the text are both needed.");
+      try { await api("/api/admin/special-save", p); closeModal(); await refresh(); render(); toast("Saved."); }
+      catch (e) { toast(e.message); }
+    });
+  });
+}
+
+/* Pushing reaches every phone that installed this. Guarded in-page, and the
+   server refuses a second one inside 20 hours whatever this does. */
+function pushSpecial(id) {
+  var sp = DAILY.specials.filter(function (x) { return String(x.id) === String(id); })[0];
+  if (!sp) return;
+  ask("Push this to every phone?",
+    "<p><strong>" + esc(sp.title) + "</strong></p>" +
+    "<p>It lands on the lock screen of all " + (DAILY.counts.pushable || 0) +
+    " phones with notifications on. It cannot be unsent, and only one can go out a day.</p>",
+    "Push it now", async function () {
+      var r = await api("/api/admin/special-push", { id: Number(id) });
+      closeModal(); await refresh(); render();
+      toast("Sent to " + r.sent + " of " + r.of + " phones.");
+    });
+}
 
 /* ==========================================================================
    New sign-ups.
@@ -1811,6 +1946,10 @@ document.addEventListener("click", function (e) {
   if (a === "setup") { closeModal(); return setupModal(act.dataset.id); }
   if (a === "pview") { closeModal(); return patientView(act.dataset.id); }
   if (a === "pdel") return deletePatient(act.dataset.id);
+  if (a === "lead") return leadStatus(act.dataset.id, act.dataset.s);
+  if (a === "special-new") return specialModal("new");
+  if (a === "special-edit") return specialModal(act.dataset.id);
+  if (a === "special-push") return pushSpecial(act.dataset.id);
   if (a === "su-approve") return signupDecide(act.dataset.id, "approve");
   if (a === "su-reject") return signupDecide(act.dataset.id, "reject");
   if (a === "su-link") return signupDecide(act.dataset.id, "link", act.dataset.target);
