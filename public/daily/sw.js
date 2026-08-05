@@ -1,8 +1,8 @@
 /* Heartland Daily. Network first, same reasoning as the patient app: a stale
    file that looks fine is worse than a slow one that is right. */
-var CACHE = "hmh-daily-v1";
+var CACHE = "hmh-daily-v2";
 var SHELL = ["./", "index.html", "styles.css", "daily.js", "manifest.webmanifest",
-             "icons/icon-192.png", "img/mark.png", "img/backdrop.webp"];
+             "icons/icon-192.png", "img/mark.png", "img/lion-full.png"];
 
 self.addEventListener("install", function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(SHELL); })

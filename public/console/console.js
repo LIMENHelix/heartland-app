@@ -832,6 +832,22 @@ function patientModal(id) {
     '<input class="input" data-f="salesforce_id" value="' + esc(p.salesforce_id || "") + '" placeholder="003...">' +
     '<span class="field__h">Makes the Call button open this patient\'s Salesforce record. Blank opens the Contacts list instead.</span>');
 
+  /* Shot day is the single most useful thing the app can say, and it is the
+     one thing only the clinic knows. */
+  h += '<div class="grid2">' +
+    field("Injection day", '<select class="select" data-f="shot_day">' +
+      '<option value="">Not on a weekly shot</option>' +
+      ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"].map(function (d, i) {
+        return '<option value="' + i + '"' +
+          (String(p.shot_day) === String(i) ? " selected" : "") + ">" + d + "</option>";
+      }).join("") + "</select>" +
+      '<span class="field__h">Drives "shot day tomorrow" and "did you take it".</span>') +
+    field("Eligible for GLP-1", '<select class="select" data-f="glp1_eligible">' +
+      '<option value="0"' + (Number(p.glp1_eligible) ? "" : " selected") + ">Not flagged</option>" +
+      '<option value="1"' + (Number(p.glp1_eligible) ? " selected" : "") + ">Yes, he qualifies</option></select>" +
+      '<span class="field__h">Lets you offer it without guessing who to ask.</span>') +
+  "</div>";
+
   h += field("Their patient coordinator",
     '<select class="select" data-f="coordinator_id">' +
       '<option value="">Not assigned</option>' +

@@ -89,9 +89,9 @@ function render() {
 function renderOnboard() {
   var h = '<div class="hero">' +
     '<p class="eyebrow">Free, from Heartland Men\'s Health</p>' +
-    '<h1 class="h1">What do you want to be better at?</h1>' +
-    '<p class="lede">Pick any of these and your phone will remind you. No account, ' +
-    "nothing to fill in, and you can change it whenever.</p></div>";
+    '<h1 class="h1">Pick your<br>battles.</h1>' +
+    '<p class="lede">Choose what you want to be better at. Your phone does the nagging. ' +
+    "No account, nothing to fill in, free forever.</p></div>";
   h += '<div class="goals">';
   GOALS.forEach(function (g) {
     var on = state.goals.indexOf(g.key) !== -1;
@@ -101,7 +101,7 @@ function renderOnboard() {
       '<span class="goal__s">' + esc(g.sub) + "</span></span></button>";
   });
   h += "</div>";
-  h += '<button class="btn btn--primary btn--full" data-act="start">Set my reminders</button>';
+  h += '<button class="btn btn--primary btn--full" data-act="start">Start</button>';
   h += '<p class="fine">Heartland Men\'s Health, Kansas City. This is general guidance, ' +
        "not medical advice, and using it does not make you a patient.</p>";
   $("#main").innerHTML = h;

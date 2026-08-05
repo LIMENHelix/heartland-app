@@ -557,3 +557,100 @@ main {
   background: none; border: 1px solid rgba(255, 255, 255, .28);
   border-radius: var(--r); color: var(--cream); cursor: pointer;
 }
+
+/* ==========================================================================
+   DARK.
+
+   The cream treatment is right for the patient app: that one is read at 6am by
+   a man who feels rough, and it is full of clinical detail he has to take in.
+   This app is a free tool that has to look worth installing in the two seconds
+   before he decides. So: near-black, one gold accent, big flat type, and the
+   lion at full strength rather than washed out.
+
+   Everything from here overrides the shared block above.
+   ========================================================================== */
+
+:root {
+  --ink-d:    #0B0F12;   /* the ground */
+  --panel-d:  #141B21;   /* cards */
+  --line-d:   #26313A;
+  --text-d:   #F2EFE9;
+  --dim-d:    #9AA7B1;   /* 6.3:1 on the panel */
+}
+
+body { background: var(--ink-d); color: var(--text-d); }
+
+/* The lion, full strength, anchored top-right and fading into the dark. */
+.backdrop {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-color: var(--ink-d);
+  background-image:
+    radial-gradient(120% 85% at 78% 8%, rgba(11,15,18,0) 0%, rgba(11,15,18,.55) 45%, var(--ink-d) 78%),
+    url("img/lion-full.png");
+  background-size: auto, 155% auto;
+  background-position: center, 74% -4%;
+  background-repeat: no-repeat, no-repeat;
+}
+
+.topbar { background: rgba(11,15,18,.86); border-bottom: 1px solid var(--line-d);
+          backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.topbar__t { color: var(--text-d); }
+
+/* Type does the work. Tight, heavy, and big. */
+.hero { margin: 10px 0 26px; }
+.hero .h1 {
+  font: 800 clamp(38px,11.5vw,54px)/0.95 var(--display);
+  letter-spacing: -.035em; color: var(--text-d); margin: 10px 0 14px;
+  text-transform: uppercase;
+}
+.eyebrow { color: var(--gold-soft); letter-spacing: .22em; }
+.lede { color: var(--dim-d); font-size: 1.05rem; }
+
+.card, .goal {
+  background: var(--panel-d); border-color: var(--line-d); color: var(--text-d);
+  box-shadow: none;
+}
+.h2, .h3 { color: var(--text-d); }
+.muted, .field__h, .fine { color: var(--dim-d); }
+
+.goal__box { border-color: var(--line-d); background: transparent; }
+.goal.is-on { border-color: var(--gold); background: #1A2028; }
+.goal.is-on .goal__box { background: var(--gold); border-color: var(--gold); }
+.goal.is-on .goal__box::after { border-color: var(--ink-d); }
+.goal__t { color: var(--text-d); letter-spacing: -.01em; }
+.goal__s { color: var(--dim-d); }
+
+/* One accent, used once per screen. */
+.btn--primary {
+  background: var(--gold); color: var(--ink-d); border-color: var(--gold);
+  font-weight: 800; letter-spacing: .01em; text-transform: uppercase;
+}
+.btn--outline { background: transparent; color: var(--text-d); border-color: var(--line-d); }
+.btn--ghost { color: var(--dim-d); }
+
+.slot { border-bottom-color: var(--line-d); }
+.slot__l { color: var(--text-d); }
+.slot__t {
+  background: var(--ink-d); border-color: var(--line-d); color: var(--text-d);
+  color-scheme: dark;                 /* so the native time picker is dark too */
+}
+.card--nudge { border-color: var(--gold); }
+
+/* The offer is the brightest thing on the page, on purpose. */
+.special {
+  background: linear-gradient(180deg, #1D262E 0%, #141B21 100%);
+  border: 1px solid var(--gold); border-top-width: 3px;
+}
+.special__t { color: var(--text-d); text-transform: uppercase; letter-spacing: -.02em; }
+.special__b { color: var(--dim-d); }
+.special__cta { color: var(--gold-soft); }
+
+.input, .textarea {
+  background: var(--ink-d); border-color: var(--line-d); color: var(--text-d);
+}
+.input::placeholder, .textarea::placeholder { color: #6C7A85; }
+.field__l { color: var(--dim-d); }
+.sheet__panel { background: var(--panel-d); border-color: var(--line-d); }
+.sheet__head { border-bottom-color: var(--line-d); }
+.iconbtn { color: var(--dim-d); }
+.toast { background: var(--gold); color: var(--ink-d); font-weight: 700; }

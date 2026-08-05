@@ -11,6 +11,7 @@
 const crypto = require("crypto");
 const db = require("../lib/db");
 const push = require("../lib/push");
+const voice = require("../lib/voice");
 
 /* ==========================================================================
    VAPID keys, generated once and kept in the database so they survive redeploys.
@@ -634,6 +635,7 @@ const routes = {
                      "status", "pinned", "notes",
                      "date_of_birth", "start_date", "agreement_months", "addons",
                      "coordinator_id", "vitality_status", "vitality_points", "salesforce_id",
+                     "shot_day", "shot_hour", "glp1_eligible",
                      "lender_name", "lender_phone",
                      "lender_url", "payment_amount", "payment_due_day"];
     const sets = [], vals = [];
@@ -1201,9 +1203,10 @@ const routes = {
           "SELECT * FROM install_devices WHERE install_id = $1 AND active = 1", [inst.id]);
         for (const d of devices) {
           try {
+            const copy = voice.freeMessage(slot.key, day, inst.device_key);
             const r = await push.sendNotification(
               { endpoint: d.endpoint, keys: { p256dh: d.p256dh, auth: d.auth } },
-              { title: slot.title, body: slot.body, tag: "hmh-" + slot.key, url: "/daily/" },
+              { title: copy.title, body: copy.body, tag: "hmh-" + slot.key, url: "/daily/" },
               vapid, { ttl: 3600 * 6, urgency: "normal" });
             if (r.ok) sent++; else { failed++; if (r.gone) await db.q("UPDATE install_devices SET active = 0 WHERE id = $1", [d.id]); }
           } catch (e) { failed++; }
@@ -1213,6 +1216,98 @@ const routes = {
     const out = { installs: rows.length, sent: sent, skipped: skipped, failed: failed, window: windowMin };
     await db.q("INSERT INTO cron_runs (job, at, ms, result) VALUES ($1,$2,$3,$4)",
                ["daily-reminders", now, Date.now() - now, JSON.stringify(out)]);
+    send(res, 200, out);
+  },
+
+
+  /* ---------------- what a patient's phone says ----------------
+
+     Shot day, labs, running low, renewal. Everything the clinic would ring
+     about if it had the hours, said once, at a civilised time.
+
+     Each patient carries a small map of slot -> day, so a nudge fires once
+     however often this runs, and so a man is never told two things at once:
+     the first thing that applies wins and the rest wait for tomorrow. Being
+     nagged four times before breakfast is how notifications get switched off.  */
+
+  "GET /api/cron/patient-nudges": async function (req, res) {
+    const secret = process.env.CRON_SECRET;
+    const auth = req.headers.authorization || "";
+    if (!secret) return send(res, 503, { error: "CRON_SECRET is not configured." });
+    if (auth !== "Bearer " + secret) return send(res, 401, { error: "Not authorized." });
+
+    const now = Date.now();
+    const DAY = db.DAY;
+    const rows = await db.q(`
+      SELECT p.* FROM patients p
+       WHERE p.status = 'active'
+         AND COALESCE(p.account_status,'') <> 'pending'
+         AND EXISTS (SELECT 1 FROM devices d WHERE d.patient_id = p.id AND d.active = 1)`);
+
+    const vapid = await getVapid();
+    let sent = 0, considered = 0, quiet = 0;
+
+    for (const p of rows) {
+      const off = 300;                       /* the clinic's metro, one timezone */
+      const hm = db.localHM(now, off);
+      const day = db.dayKey(now, off);
+      /* One window a day, late morning. Nobody wants a nudge at 4am. */
+      if (!db.slotIsDue("10:00", hm, 60)) continue;
+      considered++;
+
+      let fired = {};
+      try { fired = JSON.parse(p.last_nudge || "{}"); } catch (e) {}
+
+      /* Ordered by what ignoring it actually costs. The things that STOP
+         treatment outright come before the things that merely degrade it: a
+         missed renewal ends the plan, overdue labs only mean the dose is
+         guesswork for another week. */
+      const supply = db.supplyLeft(p, now);
+      const labs = db.labStatus(p, now);
+      const renewAt = db.renewalDate(p);
+      const renewIn = renewAt == null ? null : db.daysBetween(renewAt, now);
+      const dow = new Date(now - off * 60000).getUTCDay();
+      const shotDay = p.shot_day === null || p.shot_day === undefined ? null : Number(p.shot_day);
+
+      const candidates = [];
+      /* today only, and the whole point of the app */
+      if (shotDay !== null && dow === shotDay) candidates.push("shot_today");
+      if (shotDay !== null && dow === (shotDay + 6) % 7) candidates.push("shot_tomorrow");
+      /* treatment stops */
+      if (supply !== null && supply <= 0) candidates.push("supply_out");
+      if (renewIn !== null && renewIn <= 7 && renewIn >= 0) candidates.push("renewal_now");
+      /* treatment degrades */
+      if (supply !== null && supply > 0 && supply <= 7) candidates.push("supply_low");
+      /* Nothing records that a draw actually happened, so a lab date that has
+         passed stays "overdue" for ever and the app would nag about it until
+         the man turns notifications off. A visit logged since the date is the
+         best evidence available that he came in, so treat it as done. */
+      const visitAt = db.n(p.last_visit_at);
+      const labDue = labs && labs.previous ? labs.previous.at : null;
+      const labSeen = labDue !== null && visitAt && visitAt >= labDue;
+      if (!labSeen && labs && labs.previous && labs.previous.daysAgo > 14) candidates.push("labs_overdue");
+      else if (!labSeen && labs && labs.previous && labs.previous.daysAgo >= 0) candidates.push("labs_due");
+      /* worth knowing, not urgent */
+      if (renewIn !== null && renewIn <= 30 && renewIn > 7) candidates.push("renewal_soon");
+
+      const slot = candidates.filter(function (k) { return fired[k] !== day; })[0];
+      if (!slot) { quiet++; continue; }
+
+      const copy = voice.patientMessage(slot, day, String(p.id));
+      if (!copy) continue;
+
+      const r = await pushToPatient(p.id, {
+        title: copy.title, body: copy.body, tag: "hmh-" + slot, url: "/app/"
+      });
+      if (r.sent) sent++;
+      fired[slot] = day;
+      await db.q("UPDATE patients SET last_nudge = $1 WHERE id = $2",
+                 [JSON.stringify(fired), p.id]);
+    }
+
+    const out = { patients: rows.length, considered: considered, sent: sent, nothingToSay: quiet };
+    await db.q("INSERT INTO cron_runs (job, at, ms, result) VALUES ($1,$2,$3,$4)",
+               ["patient-nudges", now, Date.now() - now, JSON.stringify(out)]);
     send(res, 200, out);
   },
 
@@ -1253,11 +1348,10 @@ const routes = {
 
     let sent = 0, failed = 0;
     for (const p of due) {
+      const copy = voice.patientMessage("checkin", day, String(p.id));
       const r = await pushToPatient(p.id, {
-        title: "Heartland",
-        body: "How did today go? Two minutes to record it.",
-        tag: "hmh-checkin-" + day,
-        url: "/app/?screen=you"
+        title: copy.title, body: copy.body,
+        tag: "hmh-checkin-" + day, url: "/app/?screen=you"
       });
       if (r.sent) sent++; else failed++;
       /* Stamped whether or not the push landed, so a man with a dead
