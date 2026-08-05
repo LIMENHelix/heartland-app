@@ -1069,6 +1069,19 @@ function viewDaily() {
     "<p>Share <strong>" + esc(location.host) + "/daily</strong>. Nobody gives you anything to install it, " +
     "so most of these stay anonymous. The ones below asked to be called.</p></div>";
 
+  /* Whether the reminders are actually running. A stalled schedule is
+     invisible from the app: a man simply stops being nudged and assumes the
+     thing is rubbish. */
+  var cr = DAILY.cron || {};
+  var stale = cr.lastRun && (Date.now() - cr.lastRun) > 45 * 60 * 1000;
+  h += '<div class="cronbar' + (stale || !cr.lastRun ? " cronbar--warn" : "") + '">' +
+    (cr.lastRun
+      ? "<strong>Reminders ran " + esc(fmtWhen(cr.lastRun)) + "</strong>" +
+        (cr.everyMinutes ? " · firing about every " + cr.everyMinutes + " minutes" : "") +
+        (stale ? " — that is longer ago than it should be." : "")
+      : "<strong>The reminder schedule has not run yet.</strong> Nobody will be nudged until it does.") +
+    "</div>";
+
   var open = DAILY.leads.filter(function (l) { return l.status === "new"; });
   var rest = DAILY.leads.filter(function (l) { return l.status !== "new"; });
   h += '<p class="eyebrow" style="margin-top:22px">Asked to be called \u00b7 ' + open.length + "</p>";

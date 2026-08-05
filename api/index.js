@@ -1073,10 +1073,24 @@ const routes = {
     leads.forEach(function (r) { r.at = db.n(r.at); r.updated_at = db.n(r.updated_at); });
     const specials = await db.q("SELECT * FROM specials ORDER BY live DESC, id DESC LIMIT 30");
     specials.forEach(function (r) { r.pushed_at = db.n(r.pushed_at); });
+    /* Reminders are only worth anything if the schedule is actually running.
+       Show the last few runs and how far apart they were, so a stalled cron is
+       visible here rather than discovered by a man who stopped being nudged. */
+    const runs = await db.q(
+      "SELECT at, result FROM cron_runs WHERE job = 'daily-reminders' ORDER BY at DESC LIMIT 12");
+    runs.forEach(function (r) { r.at = db.n(r.at); });
+    let gapMin = null;
+    if (runs.length > 1) {
+      const gaps = [];
+      for (let i = 0; i < runs.length - 1; i++) gaps.push(runs[i].at - runs[i + 1].at);
+      gaps.sort(function (a, b) { return a - b; });
+      gapMin = Math.round(gaps[Math.floor(gaps.length / 2)] / 60000);
+    }
     send(res, 200, {
       counts: { installs: installs.n, active7: active7.n, pushable: pushable.n,
                 newLeads: leads.filter(function (l) { return l.status === "new"; }).length },
-      leads: leads, specials: specials
+      leads: leads, specials: specials,
+      cron: { lastRun: runs.length ? runs[0].at : null, runs: runs.length, everyMinutes: gapMin }
     });
   },
 
@@ -1196,7 +1210,10 @@ const routes = {
         }
       }
     }
-    send(res, 200, { installs: rows.length, sent: sent, skipped: skipped, failed: failed, window: windowMin });
+    const out = { installs: rows.length, sent: sent, skipped: skipped, failed: failed, window: windowMin };
+    await db.q("INSERT INTO cron_runs (job, at, ms, result) VALUES ($1,$2,$3,$4)",
+               ["daily-reminders", now, Date.now() - now, JSON.stringify(out)]);
+    send(res, 200, out);
   },
 
   /* ---------------- the evening nudge ----------------
@@ -1247,7 +1264,10 @@ const routes = {
          subscription is not retried all night. */
       await db.q("UPDATE patients SET reminded_on = $1 WHERE id = $2", [day, p.id]);
     }
-    send(res, 200, { day: day, due: due.length, sent: sent, failed: failed });
+    const out = { day: day, due: due.length, sent: sent, failed: failed };
+    await db.q("INSERT INTO cron_runs (job, at, ms, result) VALUES ($1,$2,$3,$4)",
+               ["checkin-reminder", now, Date.now() - now, JSON.stringify(out)]);
+    send(res, 200, out);
   },
 
   /* Who was removed, by whom, and when. Admin only: it is the one record that

@@ -815,3 +815,11 @@ body {
 .dangerbox strong { color: var(--rust-dark); }
 .btn--danger { background: var(--rust-dark); color: #fff; border-color: var(--rust-dark); }
 .btn--danger:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Is the schedule actually running? */
+.cronbar {
+  padding: 11px 15px; margin: 0 0 18px; border-radius: var(--r);
+  background: #EEF6F0; border: 1px solid #BFDCC9; color: #1F6340;
+  font-size: .93rem; line-height: 1.45;
+}
+.cronbar--warn { background: #FBF3E6; border-color: var(--gold); color: var(--gold-deep); }
