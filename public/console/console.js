@@ -688,8 +688,17 @@ function wireCompose(preselectId) {
     const who = audience === "one"
       ? ($("#cPatient").selectedOptions[0] || {}).textContent
       : count + " patients";
-    if (!confirm("Send \"" + title + "\" to " + who + "?")) return;
+    ask("Send this?",
+      "<p><strong>" + esc(title) + "</strong></p>" +
+      "<p>Goes to " + esc(who) + ". It lands as a notification on a phone and cannot be unsent.</p>",
+      "Send it now", function () { return reallySend(title, body, audience, kind); });
+  });
 
+  /* Everything past the confirmation. Separated so the guard cannot be walked
+     through by a click that never went near it. */
+  async function reallySend(title, body, audience, kind) {
+    closeModal();
+    const btn = $("#cSend");
     btn.disabled = true;
     btn.textContent = "Sending…";
     try {
@@ -711,7 +720,7 @@ function wireCompose(preselectId) {
       btn.disabled = false;
       btn.textContent = "Send now";
     }
-  });
+  }
 }
 
 /* ---------------- articles ---------------- */
@@ -965,13 +974,9 @@ function patientModal(id) {
     });
 
     const del = $("#pDel", root);
-    if (del) del.addEventListener("click", async function () {
-      if (!confirm("Delete " + p.first_name + " " + p.last_name +
-                   " and everything attached to them? This cannot be undone.")) return;
-      try {
-        await api("/api/admin/patient-delete", { id: p.id });
-        closeModal(); await refresh(); render(); toast("Deleted.");
-      } catch (e) { toast(e.message); }
+    if (del) del.addEventListener("click", function () {
+      closeModal();
+      deletePatient(p.id);      /* one guarded path, not two */
     });
 
     const mail = $("#pMail", root);
@@ -1017,11 +1022,12 @@ function articleModal(id) {
     });
     const del = $("#aDel", root);
     if (del) del.addEventListener("click", async function () {
-      if (!confirm("Delete \"" + a.title + "\"? Patients will no longer see it.")) return;
-      try {
-        await api("/api/admin/article-delete", { id: a.id });
-        closeModal(); await refresh(); render(); toast("Deleted.");
-      } catch (e) { toast(e.message); }
+      ask("Delete this article?",
+        "<p><strong>" + esc(a.title) + "</strong></p><p>Patients will no longer see it.</p>",
+        "Delete it", async function () {
+          await api("/api/admin/article-delete", { id: a.id });
+          closeModal(); await refresh(); render(); toast("Deleted.");
+        });
     });
   });
 }
@@ -1109,10 +1115,24 @@ function claimRow(label, value) {
 async function signupDecide(id, decision, targetId) {
   var s = SIGNUPS.filter(function (x) { return String(x.id) === String(id); })[0] || {};
   var who = (s.first_name || "") + " " + (s.last_name || "");
-  if (decision === "reject" &&
-      !confirm("Mark " + who + " as not our patient? He will be locked out immediately.")) return;
-  if (decision === "approve" &&
-      !confirm("Confirm " + who + " as a patient? His app opens straight away and he goes on your panel.")) return;
+  const go = async function () {
+    const r = await api("/api/admin/signup-decide",
+      { id: Number(id), decision: decision, targetId: targetId ? Number(targetId) : null });
+    closeModal(); await refresh(); render();
+    toast(r.decision === "linked" ? "Linked to the existing record."
+        : r.decision === "approved" ? who.trim() + " is in." : "Marked as not our patient.");
+  };
+  if (decision === "reject") {
+    return ask("Not our patient?",
+      "<p><strong>" + esc(who.trim()) + "</strong> is locked out immediately and cannot sign up again with those details.</p>",
+      "He is not our patient", go);
+  }
+  if (decision === "approve") {
+    return ask("Confirm him as a patient?",
+      "<p><strong>" + esc(who.trim()) + "</strong>'s app opens straight away and he goes on your panel. " +
+      "Only do this if you know he is yours.</p>",
+      "Yes, he is our patient", go);
+  }
   try {
     var r = await api("/api/admin/signup-decide",
       { id: Number(id), decision: decision, targetId: targetId ? Number(targetId) : null });
@@ -1146,27 +1166,64 @@ async function patientPassword(id) {
 
 
 
+/* An in-page confirmation.
+
+   Native confirm() is not a safeguard. A headless browser, an automation, or a
+   browser with dialogs suppressed goes straight through it without a human
+   ever seeing it, and that is exactly how three patient records were deleted
+   and a junk message composed during testing here. Anything destructive, and
+   anything that reaches a patient's phone, asks with a real button that has to
+   be clicked. The button names the act rather than saying OK. */
+function ask(title, body, label, onYes) {
+  const h = '<div class="dangerbox">' + body + "</div>" +
+    '<button class="btn btn--primary btn--full" id="askYes">' + esc(label) + "</button>" +
+    '<button class="btn btn--ghost btn--full" id="askNo" style="margin-top:8px">Cancel</button>';
+  openModal(title, h, function (root) {
+    $("#askNo", root).addEventListener("click", closeModal);
+    $("#askYes", root).addEventListener("click", async function () {
+      const b = $("#askYes", root);
+      b.disabled = true; b.textContent = "Working…";
+      try { await onYes(); } catch (e) { b.disabled = false; b.textContent = label; toast(e.message); }
+    });
+  });
+}
+
 /* Deleting takes his record, his messages, his check-ins and his food and
-   training log with it, and there is no undo. The confirmation names what
-   goes, and typing the surname is the guard against a mis-click on a list. */
-async function deletePatient(id) {
+   training log with it, and there is no undo. The confirmation is a field you
+   type into and a button that stays disabled until it matches, so nothing can
+   click through it and the button that finally does it is not the one that was
+   clicked to get here. */
+function deletePatient(id) {
   const p = PATIENTS.filter(function (x) { return String(x.id) === String(id); })[0];
   if (!p) return;
-  const who = (p.first_name || "") + " " + (p.last_name || "");
-  const typed = prompt(
-    "Delete " + who.trim() + " permanently?\n\n" +
-    "This also removes every message, check-in and log entry for him, and cannot be undone.\n\n" +
-    "Type his last name to confirm:");
-  if (typed === null) return;
-  if (String(typed).trim().toLowerCase() !== String(p.last_name || "").trim().toLowerCase()) {
-    return toast("That did not match. Nothing was deleted.");
-  }
-  try {
-    await api("/api/admin/patient-delete", { id: Number(id) });
-    closeModal();
-    await refresh(); render();
-    toast(who.trim() + " deleted.");
-  } catch (e) { toast(e.message); }
+  const who = ((p.first_name || "") + " " + (p.last_name || "")).trim();
+  const surname = String(p.last_name || "").trim();
+
+  let h = '<div class="dangerbox"><p><strong>' + esc(who) + " will be removed permanently.</strong></p>" +
+    "<p>This also deletes every message he has sent or received, every check-in he has recorded, " +
+    "and his food and training log. It cannot be undone.</p></div>";
+  h += field("Type <strong>" + esc(surname) + "</strong> to confirm",
+    '<input class="input" id="delWord" autocomplete="off" spellcheck="false">');
+  h += '<button class="btn btn--danger btn--full" id="delGo" disabled>Delete ' + esc(who) + "</button>";
+  h += '<button class="btn btn--ghost btn--full" id="delNo" style="margin-top:8px">Keep him</button>';
+
+  openModal("Delete a patient", h, function (root) {
+    const word = $("#delWord", root), go = $("#delGo", root);
+    word.addEventListener("input", function () {
+      go.disabled = this.value.trim().toLowerCase() !== surname.toLowerCase();
+    });
+    word.focus();
+    $("#delNo", root).addEventListener("click", closeModal);
+    go.addEventListener("click", async function () {
+      if (go.disabled) return;
+      go.disabled = true; go.textContent = "Deleting…";
+      try {
+        await api("/api/admin/patient-delete", { id: Number(id) });
+        closeModal(); await refresh(); render();
+        toast(who + " deleted.");
+      } catch (e) { go.disabled = false; go.textContent = "Delete " + who; toast(e.message); }
+    });
+  });
 }
 
 /* ==========================================================================

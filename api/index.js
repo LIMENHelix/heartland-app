@@ -1068,7 +1068,7 @@ const routes = {
   /* ---------------- messages ---------------- */
 
   "GET /api/admin/messages": async function (req, res) {
-    if (!await requireCoordinator(req, res)) return;
+    const u = await requireCoordinator(req, res); if (!u) return;
     /* An admin sees every send; a coordinator sees their own. Broadcast copy
        is not private, but who sent what to whom is a management view. */
     const scoped = u.role === "admin" ? "" : " WHERE m.created_by = " + Number(u.id);
