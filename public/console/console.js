@@ -116,14 +116,25 @@ function toast(msg) {
 }
 
 /* ---- dates ---- */
-function fmtDate(ts) {
-  if (!ts) return "not set";
-  return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+/* Everything below takes an epoch in milliseconds. Coerce, because a BIGINT
+   arriving as the string "88016400000" makes new Date() an Invalid Date rather
+   than that moment in 1972, and toISOString then throws and takes the whole
+   screen with it. That is what stopped a patient record opening at all. */
+function ms(ts) {
+  const n = Number(ts);
+  return Number.isFinite(n) && n !== 0 ? n : null;
 }
-function daysSince(ts) { return Math.floor((Date.now() - ts) / DAY); }
+function fmtDate(ts) {
+  const t = ms(ts);
+  if (!t) return "not set";
+  return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+function daysSince(ts) { const t = ms(ts); return t === null ? null : Math.floor((Date.now() - t) / DAY); }
 function toDateInput(ts) {
-  if (!ts) return "";
-  const d = new Date(ts);
+  const t = ms(ts);
+  if (t === null) return "";
+  const d = new Date(t);
+  if (isNaN(d.getTime())) return "";
   return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 }
 function fromDateInput(v) { return v ? new Date(v + "T12:00:00").getTime() : null; }

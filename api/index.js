@@ -585,8 +585,13 @@ const routes = {
     const where = scope.sql
       ? scope.sql + " AND COALESCE(account_status,'') <> 'pending'"
       : " WHERE COALESCE(account_status,'') <> 'pending'";
-    send(res, 200, { patients: await db.q(
-      "SELECT * FROM patients" + where + " ORDER BY last_name, first_name", scope.vals) });
+    const rows = await db.q(
+      "SELECT * FROM patients" + where + " ORDER BY last_name, first_name", scope.vals);
+    /* Postgres returns BIGINT as a STRING. new Date("88016400000") is not an
+       epoch, it is an Invalid Date, and anything downstream that formats it
+       throws. Normalise here so no consumer has to remember. */
+    rows.forEach(function (r) { db.PATIENT_TIMES.forEach(function (k) { r[k] = db.n(r[k]); }); });
+    send(res, 200, { patients: rows });
   },
 
   "POST /api/admin/patients": async function (req, res) {
@@ -710,7 +715,25 @@ const routes = {
     if (!await ownsPatient(u, b.id)) {
       return send(res, 403, { error: "That patient is on another coordinator's panel." });
     }
-    // cascades clear tokens, devices, events and message targets
+    const gone = await db.one("SELECT * FROM patients WHERE id = $1", [b.id]);
+    if (!gone) return send(res, 404, { error: "No such patient." });
+
+    /* Write the audit row FIRST. If the delete then fails, an extra line in a
+       log is harmless; a delete with no record of it is not. */
+    const cCount = await db.one("SELECT COUNT(*)::int AS n FROM checkins WHERE patient_id = $1", [b.id]);
+    const mCount = await db.one(
+      "SELECT COUNT(*)::int AS n FROM messages WHERE from_patient_id = $1", [b.id]);
+    await db.q(`INSERT INTO deletions (patient_id, first_name, last_name, email, phone,
+                  deleted_by, deleted_by_name, at, had_checkins, had_messages)
+                VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [gone.id, gone.first_name, gone.last_name, gone.email, gone.phone,
+       u.id, u.name, Date.now(), cCount.n, mCount.n]);
+
+    /* His messages would otherwise survive him as orphans, invisible in the UI
+       and sitting in the table forever. */
+    await db.q("DELETE FROM message_targets WHERE message_id IN (SELECT id FROM messages WHERE from_patient_id = $1)", [b.id]);
+    await db.q("DELETE FROM messages WHERE from_patient_id = $1", [b.id]);
+    // the rest cascades: tokens, devices, events, check-ins, logs
     await db.q("DELETE FROM patients WHERE id = $1", [b.id]);
     send(res, 200, { ok: true });
   },
@@ -991,6 +1014,16 @@ const routes = {
       await db.q("UPDATE patients SET reminded_on = $1 WHERE id = $2", [day, p.id]);
     }
     send(res, 200, { day: day, due: due.length, sent: sent, failed: failed });
+  },
+
+  /* Who was removed, by whom, and when. Admin only: it is the one record that
+     outlives a patient and it should not be quietly editable or browsable by
+     everyone. */
+  "GET /api/admin/deletions": async function (req, res) {
+    const u = await requireAdmin(req, res); if (!u) return;
+    const rows = await db.q("SELECT * FROM deletions ORDER BY at DESC LIMIT 200");
+    rows.forEach(function (r) { r.at = db.n(r.at); });
+    send(res, 200, { deletions: rows });
   },
 
   /* ---------------- articles ---------------- */
