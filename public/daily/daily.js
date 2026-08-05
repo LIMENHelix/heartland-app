@@ -37,6 +37,26 @@ function esc(s) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
   });
 }
+
+/* A phone number in the form an sms: or tel: link should carry.
+
+   E.164 (+1816...) is what every phone resolves without ambiguity. A bare
+   ten-digit number works on a US handset with a US SIM and is a coin flip
+   anywhere else, including for a patient travelling.
+
+   THE THREE-DIGIT CASE IS WHY THIS IS A FUNCTION AND NOT A REGEX INLINE.
+   911 and 988 are rendered as tel: links in this app, and "+1911" does not
+   dial anything. Short codes are handed back untouched; only a real
+   ten-digit North American number gets the country code.  */
+function dial(v) {
+  var s = String(v == null ? "" : v).trim();
+  if (s.charAt(0) === "+") return s.replace(/[^0-9+]/g, "");
+  var d = s.replace(/[^0-9]/g, "");
+  if (d.length === 10) return "+1" + d;            /* 913-431-2757 */
+  if (d.length === 11 && d.charAt(0) === "1") return "+" + d;
+  return d;                                        /* 911, 988, anything else */
+}
+
 function tz() { return new Date().getTimezoneOffset(); }
 
 /* A key the phone keeps. Random, meaningless, and never sent anywhere but here. */
@@ -279,7 +299,7 @@ function renderSetup() {
 
   h += '<div class="card"><p class="h3">Heartland Men\'s Health</p>' +
     '<p class="muted">Low testosterone, weight, and sexual health. Kansas City.</p>' +
-    '<a class="btn btn--outline btn--full" href="sms:' + state.textLine.replace(/-/g, "") +
+    '<a class="btn btn--outline btn--full" href="sms:' + dial(state.textLine) +
       '?&body=' + encodeURIComponent("Hi, I have some questions about getting started.") +
       '">Text us on ' + esc(state.textLine) + "</a>" +
     '<button class="btn btn--ghost btn--full" data-act="ask" style="margin-top:8px">Have someone call me</button>' +
@@ -368,7 +388,7 @@ function showNews(id) {
         esc(n.cta) + "</button>"
       : "") +
     '<a class="btn btn--outline btn--full" style="margin-top:8px" href="sms:' +
-      state.textLine.replace(/-/g, "") + '?&body=' +
+      dial(state.textLine) + '?&body=' +
       encodeURIComponent("Hi, I read " + n.title + " on the Heartland app.") + '">Text the clinic</a>');
 }
 
@@ -415,7 +435,7 @@ function showSpecial() {
     '<button class="btn btn--primary btn--full" data-act="ask-special" style="margin-top:18px">' +
       esc(s.cta || "Have someone call me") + "</button>" +
     '<a class="btn btn--outline btn--full" style="margin-top:8px" href="sms:' +
-      state.textLine.replace(/-/g, "") + '?&body=' +
+      dial(state.textLine) + '?&body=' +
       encodeURIComponent("Hi, I saw " + s.title + " on the Heartland app.") + '">Text instead</a>');
 }
 

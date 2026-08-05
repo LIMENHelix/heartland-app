@@ -45,7 +45,7 @@ function salesforceHref(p) {
 
 function callHref(p) {
   return salesforceHref(p) ||
-    (p.phone ? "tel:" + String(p.phone).replace(/[^0-9+]/g, "") : null);
+    (p.phone ? "tel:" + dial(p.phone) : null);
 }
 
 function mailto(email) {
@@ -86,6 +86,26 @@ function panelBar() {
          '<select class="select select--sm" id="panelSel">' + opts + '</select>' +
          (PANEL ? '<button class="btn btn--ghost btn--sm" data-act="panel-clear">Show everyone</button>' : "") +
          '</div>';
+}
+
+
+/* A phone number in the form an sms: or tel: link should carry.
+
+   E.164 (+1816...) is what every phone resolves without ambiguity. A bare
+   ten-digit number works on a US handset with a US SIM and is a coin flip
+   anywhere else, including for a patient travelling.
+
+   THE THREE-DIGIT CASE IS WHY THIS IS A FUNCTION AND NOT A REGEX INLINE.
+   911 and 988 are rendered as tel: links in this app, and "+1911" does not
+   dial anything. Short codes are handed back untouched; only a real
+   ten-digit North American number gets the country code.  */
+function dial(v) {
+  var s = String(v == null ? "" : v).trim();
+  if (s.charAt(0) === "+") return s.replace(/[^0-9+]/g, "");
+  var d = s.replace(/[^0-9]/g, "");
+  if (d.length === 10) return "+1" + d;            /* 913-431-2757 */
+  if (d.length === 11 && d.charAt(0) === "1") return "+" + d;
+  return d;                                        /* 911, 988, anything else */
 }
 
 function esc(s) {
@@ -1187,7 +1207,7 @@ function leadCard(l) {
     (l.note ? '<blockquote class="cknote">' + esc(l.note) + "</blockquote>" : "") +
     '<div class="ckacts" style="margin-top:14px">' +
       (l.phone ? '<a class="btn btn--primary btn--sm" href="tel:' +
-        esc(String(l.phone).replace(/[^0-9+]/g, "")) + '">Call him</a>' : "") +
+        esc(dial(l.phone)) + '">Call him</a>' : "") +
       (l.status === "new"
         ? '<button class="btn btn--outline btn--sm" data-act="lead" data-id="' + l.id + '" data-s="contacted">Mark contacted</button>'
         : "") +
@@ -1359,7 +1379,7 @@ function viewSignups() {
     h += '<div class="ckacts" style="margin-top:16px">';
     if (s.phone) {
       h += '<a class="btn btn--outline btn--sm" href="tel:' +
-        esc(String(s.phone).replace(/[^0-9+]/g, "")) + '">Call to check</a>';
+        esc(dial(s.phone)) + '">Call to check</a>';
     }
     h += '<button class="btn btn--primary btn--sm" data-act="su-approve" data-id="' + s.id +
       '">He is our patient, add him</button>';
@@ -1631,7 +1651,7 @@ async function setupModal(patientId) {
     '<div class="sendbox" id="sendBox">' + esc(sms) + "</div>" +
     '<div class="grid2" style="margin-top:10px">' +
       (p.phone
-        ? '<a class="btn btn--primary" href="sms:' + esc(String(p.phone).replace(/[^0-9+]/g, "")) +
+        ? '<a class="btn btn--primary" href="sms:' + esc(dial(p.phone)) +
           "?&body=" + encodeURIComponent(sms) + '">Text ' + esc(name) + "</a>"
         : '<button class="btn btn--outline" disabled>No phone on file</button>') +
       '<button class="btn btn--outline" id="suCopyMsg">Copy the message</button>' +

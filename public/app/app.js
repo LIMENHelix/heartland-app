@@ -27,6 +27,26 @@ var SAVED = null;
 /* No general clinic number in the patient app. Patients reach their own named
    coordinator, or use the in-app question. The only number here is the priapism
    line, which is a genuine medical emergency. */
+
+/* A phone number in the form an sms: or tel: link should carry.
+
+   E.164 (+1816...) is what every phone resolves without ambiguity. A bare
+   ten-digit number works on a US handset with a US SIM and is a coin flip
+   anywhere else, including for a patient travelling.
+
+   THE THREE-DIGIT CASE IS WHY THIS IS A FUNCTION AND NOT A REGEX INLINE.
+   911 and 988 are rendered as tel: links in this app, and "+1911" does not
+   dial anything. Short codes are handed back untouched; only a real
+   ten-digit North American number gets the country code.  */
+function dial(v) {
+  var s = String(v == null ? "" : v).trim();
+  if (s.charAt(0) === "+") return s.replace(/[^0-9+]/g, "");
+  var d = s.replace(/[^0-9]/g, "");
+  if (d.length === 10) return "+1" + d;            /* 913-431-2757 */
+  if (d.length === 11 && d.charAt(0) === "1") return "+" + d;
+  return d;                                        /* 911, 988, anything else */
+}
+
 var EMERGENCY = "844-981-4996";
 var TEXT_LINE = "913-431-2757";   /* clinic text line, everyone sees it */
 var PORTAL = "https://patientportal.advancedmd.com/150527/account/logon";
@@ -105,7 +125,7 @@ function callCoordinator(label, cls) {
   var c = HOME && HOME.coordinator;
   if (!c || !c.phone) return "";
   return '<a class="btn ' + (cls || "btn--primary") + '" href="tel:' +
-    esc(String(c.phone).replace(/[^0-9+]/g, "")) + '">' + ARROW +
+    esc(dial(c.phone)) + '">' + ARROW +
     esc(label || ("Call " + c.name.split(" ")[0])) + "</a>";
 }
 
@@ -283,7 +303,7 @@ function showPending(name) {
     "usually the same day. We will let you know the moment it is done.</p>" +
     '<p class="lede">Nothing to do in the meantime. If it has been longer than a day, ' +
     "text us on " + esc(TEXT_LINE) + ".</p>" +
-    '<a class="btn btn--primary" href="sms:' + TEXT_LINE.replace(/-/g, "") + '">' + ARROW +
+    '<a class="btn btn--primary" href="sms:' + dial(TEXT_LINE) + '">' + ARROW +
       "Text the clinic</a>" +
     '<button class="gatelink" data-act="pending-check">Check again</button>' +
     '<button class="gatelink" data-act="signout">Sign out</button>'
@@ -336,7 +356,7 @@ async function tryEnroll(t) {
     if (!r.ok) {
       gate('<p class="eyebrow">That did not work</p><h1 class="display">Link not valid</h1>' +
            '<p class="lede">' + esc(data.error || "That setup link cannot be used.") + "</p>" +
-           '<a class="btn btn--primary" href="sms:' + TEXT_LINE.replace(/-/g, "") + "?&body=" +
+           '<a class="btn btn--primary" href="sms:' + dial(TEXT_LINE) + "?&body=" +
              encodeURIComponent("Hi, my Heartland app link did not work. Please send a new one.") +
              '">' + ARROW + "Text us for a new link</a>" +
            '<a class="gateout" href="/console/">Clinic staff sign in &rarr;</a>');
@@ -561,7 +581,7 @@ function renderHome() {
     }
     if (pay.lenderPhone) {
       h += '<a class="btn btn--outline btn--sm" style="margin-top:16px" href="tel:' +
-        esc(String(pay.lenderPhone).replace(/[^0-9+]/g, "")) + '">Call ' + esc(pay.lender || "the lender") + "</a>";
+        esc(dial(pay.lenderPhone)) + '">Call ' + esc(pay.lender || "the lender") + "</a>";
     }
     if (pay.lenderUrl) {
       h += '<a class="btn btn--outline btn--sm" style="margin-top:10px" href="' + esc(pay.lenderUrl) +
@@ -881,14 +901,14 @@ function renderClinic() {
   h += '<div class="notice notice--alert">' +
     '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 2.6 18.2 17H1.8Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 8v3.4M10 14.1v.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
     "<p><strong>An erection lasting 4 hours or more is an emergency.</strong> It can cause permanent damage. Call the priapism line now, or go to an emergency room.</p></div>";
-  h += '<a class="btn btn--primary" href="tel:' + EMERGENCY.replace(/-/g, "") + '">' + ARROW + "Call " + EMERGENCY + "</a>";
+  h += '<a class="btn btn--primary" href="tel:' + dial(EMERGENCY) + '">' + ARROW + "Call " + EMERGENCY + "</a>";
 
   h += sechead("Get in touch");
   h += '<div class="actions">';
   h += '<button class="btn btn--gold" data-act="ask">' + ARROW + "Message my coordinator</button>";
   h += callCoordinator(null, "btn--outline");
   h += emailCoordinator("btn--outline");
-  h += '<a class="btn btn--outline" href="sms:' + TEXT_LINE.replace(/-/g, "") + '">Text the clinic on ' + TEXT_LINE + "</a>";
+  h += '<a class="btn btn--outline" href="sms:' + dial(TEXT_LINE) + '">Text the clinic on ' + TEXT_LINE + "</a>";
   h += '<a class="btn btn--outline" href="' + PORTAL + '" target="_blank" rel="noopener">Open the patient portal</a>';
   h += '</div>';
 
@@ -1277,7 +1297,7 @@ function checkRow(x, red) {
 }
 
 function helpRow(label, value, note) {
-  return '<a class="helprow" href="tel:' + esc(String(value).replace(/[^0-9+]/g, "")) + '">' +
+  return '<a class="helprow" href="tel:' + esc(dial(value)) + '">' +
     '<span class="helprow__l">' + esc(label) + (note ? '<span class="helprow__n">' + esc(note) + "</span>" : "") + "</span>" +
     '<span class="helprow__v">' + esc(value) + "</span></a>";
 }
@@ -1502,7 +1522,7 @@ async function boot() {
     if (st.status === "rejected") { return gate(
       '<p class="eyebrow">Heartland Men\'s Health</p><h1 class="display">Call the clinic</h1>' +
       '<p class="lede">We could not confirm this account. Text us on ' + esc(TEXT_LINE) + '.</p>' +
-      '<a class="btn btn--primary" href="sms:' + TEXT_LINE.replace(/-/g, "") + '">' + ARROW +
+      '<a class="btn btn--primary" href="sms:' + dial(TEXT_LINE) + '">' + ARROW +
       "Text the clinic</a>" +
       '<button class="gatelink" data-act="signout">Sign out</button>'); }
   } catch (e) { /* an old device token predates accounts; carry on */ }
