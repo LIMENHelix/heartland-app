@@ -727,3 +727,68 @@ body {
   color: var(--navy);
 }
 #main > .notice { background: rgba(255, 255, 255, .92); }
+
+
+/* ==========================================================================
+   A patient's own app, seen from the console.
+   ========================================================================== */
+
+.rowacts {
+  display: flex; gap: 8px; flex-wrap: wrap;
+  padding: 0 18px 14px; margin-top: -6px;
+  border-bottom: 1px solid var(--line);
+}
+.card--flush .row + .rowacts { border-bottom: 1px solid var(--line); }
+
+.pvbar {
+  padding: 12px 15px; margin-bottom: 12px; border-radius: var(--r);
+  background: #EEF6F0; border: 1px solid #BFDCC9; color: #1F6340;
+  font-size: .95rem; line-height: 1.45;
+}
+.pvbar--warn { background: #FBF3E6; border-color: var(--gold); color: var(--gold-deep); }
+.pvbar__t { display: block; margin-top: 4px; font-size: .85rem; opacity: .85; }
+
+/* A narrow column, so a coordinator reads it the shape he reads it. */
+.pvphone {
+  padding: 18px; border-radius: var(--r-lg);
+  background: var(--cream); border: 1px solid var(--line);
+}
+.pvscreen { max-width: 420px; }
+.pvgreet { margin: 0 0 8px; font: 800 1.6rem/1.1 var(--display); color: var(--navy); }
+.pvbadge {
+  display: inline-block; padding: 5px 12px; border-radius: 999px;
+  background: var(--navy); color: var(--gold-soft);
+  font: 700 .82rem/1 var(--display);
+}
+.pvrows { margin-top: 16px; }
+.pvrow {
+  display: grid; grid-template-columns: 150px 1fr; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--line);
+  font-size: .93rem; line-height: 1.4;
+}
+.pvrow:last-child { border-bottom: 0; }
+.pvrow__l {
+  font: 600 .68rem/1.5 var(--data); letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted);
+}
+.pvrow__v { color: var(--ink); word-break: break-word; }
+/* Anything he is NOT seeing, because a blank field in the record is an empty
+   card on his phone and that is the thing a coordinator needs shown to them. */
+.pvrow--missing .pvrow__v { color: var(--gold-deep); font-style: italic; }
+
+.pvthread { display: flex; flex-direction: column; gap: 8px; }
+.pvmsg {
+  padding: 11px 14px; border-radius: var(--r);
+  background: var(--paper); border: 1px solid var(--line);
+  font-size: .92rem; line-height: 1.5; white-space: pre-wrap;
+}
+.pvmsg--in { background: var(--cream); border-left: 3px solid var(--gold); }
+.pvmsg__w {
+  display: block; margin-bottom: 4px;
+  font: 600 .68rem/1 var(--data); letter-spacing: .07em; text-transform: uppercase;
+  color: var(--muted);
+}
+
+@media (max-width: 620px) {
+  .pvrow { grid-template-columns: 1fr; gap: 2px; }
+}

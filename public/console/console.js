@@ -421,6 +421,10 @@ function viewPatients() {
       " · last visit " + esc(fmtDate(p.last_visit_at)) + "</div></div>" +
       '<span class="tagline' + (p.enrolled_at ? "" : " tagline--wait") + '">' +
       (p.enrolled_at ? "On the app" : "Not set up") + "</span></button>";
+    h += '<div class="rowacts"><button class="btn btn--outline btn--sm" data-act="pview" data-id="' +
+      p.id + '">See his app</button>' +
+      '<button class="btn btn--outline btn--sm" data-act="edit" data-id="' + p.id + '">Edit</button>' +
+      '<button class="btn btn--ghost btn--sm" data-act="pdel" data-id="' + p.id + '">Delete</button></div>';
   });
   return h + "</div>";
 }
@@ -865,6 +869,8 @@ function patientModal(id) {
 
   if (!isNew) {
     h += '<div class="grid2" style="margin-top:10px">' +
+      '<button class="btn btn--outline" data-act="pview" data-id="' + p.id +
+      '">See his app</button>' +
       '<button class="btn btn--outline" id="pVisit">Log a visit today</button>' +
       (p.pass_hash
         ? '<button class="btn btn--outline" data-act="pw-reset" data-id="' + p.id +
@@ -1125,6 +1131,143 @@ async function patientPassword(id) {
          '<span class="codebox__v">' + esc(r.password) + "</span></div>";
     openModal("Temporary password", h);
   } catch (e) { toast(e.message); }
+}
+
+
+
+/* Deleting takes his record, his messages, his check-ins and his food and
+   training log with it, and there is no undo. The confirmation names what
+   goes, and typing the surname is the guard against a mis-click on a list. */
+async function deletePatient(id) {
+  const p = PATIENTS.filter(function (x) { return String(x.id) === String(id); })[0];
+  if (!p) return;
+  const who = (p.first_name || "") + " " + (p.last_name || "");
+  const typed = prompt(
+    "Delete " + who.trim() + " permanently?\n\n" +
+    "This also removes every message, check-in and log entry for him, and cannot be undone.\n\n" +
+    "Type his last name to confirm:");
+  if (typed === null) return;
+  if (String(typed).trim().toLowerCase() !== String(p.last_name || "").trim().toLowerCase()) {
+    return toast("That did not match. Nothing was deleted.");
+  }
+  try {
+    await api("/api/admin/patient-delete", { id: Number(id) });
+    closeModal();
+    await refresh(); render();
+    toast(who.trim() + " deleted.");
+  } catch (e) { toast(e.message); }
+}
+
+/* ==========================================================================
+   Looking into a patient's app.
+
+   What he sees, drawn from the same payload his phone gets. Read only, and it
+   says so: a coordinator who thinks they are inside his app might otherwise
+   assume tapping something here does something for him.
+   ========================================================================== */
+
+async function patientView(id) {
+  let r;
+  try { r = await api("/api/admin/patient-view?id=" + encodeURIComponent(id)); }
+  catch (e) { return toast(e.message); }
+
+  const p = PATIENTS.filter(function (x) { return String(x.id) === String(id); })[0] || {};
+  const h = r.home, a = r.access;
+  let out = "";
+
+  /* Can he open it at all? The first question when he says he cannot see
+     something, and the one the rest of this screen is meaningless without. */
+  const problems = [];
+  if (!a.hasAccount) problems.push("has not created an account yet");
+  if (a.accountStatus === "pending") problems.push("sign-up is still waiting for approval");
+  if (a.accountStatus === "rejected") problems.push("account was marked not-our-patient");
+  if (a.hasAccount && !a.signedInDevices) problems.push("not signed in on any device");
+  if (a.signedInDevices && !a.notificationsOn) problems.push("notifications not turned on");
+
+  out += '<div class="pvbar' + (problems.length ? " pvbar--warn" : "") + '">' +
+    (problems.length
+      ? "<strong>He may not be seeing this.</strong> " + esc(problems.join(", ")) + "."
+      : "<strong>He can see all of this.</strong> Signed in on " + a.signedInDevices +
+        " device" + (a.signedInDevices === 1 ? "" : "s") +
+        (a.notificationsOn ? ", notifications on" : "") + ".") +
+    (a.lastSeenAt ? '<span class="pvbar__t">last opened ' + esc(fmtWhen(a.lastSeenAt)) + "</span>" : "") +
+    "</div>";
+
+  out += '<p class="field__h" style="margin:-4px 0 16px">This is a read-only copy of his screen. Nothing here sends, marks read, or records anything as him.</p>';
+
+  /* ---- his home screen ---- */
+  out += '<div class="pvphone"><div class="pvscreen">';
+  out += '<p class="pvgreet">' + esc(h.firstName || p.first_name || "") + "</p>";
+  if (h.vitality) {
+    out += '<span class="pvbadge">' + esc(h.vitality.label) + " \u00b7 " + h.vitality.discount + "% off</span>";
+  }
+  out += '<div class="pvrows">';
+  out += pvRow("His coordinator", h.coordinator
+    ? esc(h.coordinator.name) + (h.coordinator.phone ? " \u00b7 " + esc(h.coordinator.phone) : "") +
+      (h.coordinator.email ? " \u00b7 " + esc(h.coordinator.email) : "")
+    : "NOBODY \u2014 he sees no call or email button at all", !h.coordinator);
+  out += pvRow("What he is on", h.protocol ? esc(h.protocol) : "nothing entered", !h.protocol);
+  out += pvRow("Clinic", h.clinic ? esc(h.clinic) : "not set", !h.clinic);
+  out += pvRow("Medication left", h.supplyLeft === null || h.supplyLeft === undefined
+    ? "no supply dates entered" : h.supplyLeft + " days", h.supplyLeft === null || h.supplyLeft === undefined);
+  out += pvRow("Next labs", h.labs && h.labs.next
+    ? esc(fmtDate(h.labs.next.at)) + " \u00b7 " + esc(h.labs.next.label)
+    : "no start date, so no lab schedule", !(h.labs && h.labs.next));
+  out += pvRow("Renewal", h.renewalAt
+    ? esc(fmtDate(h.renewalAt)) + " \u00b7 in " + h.renewalInDays + " days"
+    : "no start date or agreement length", !h.renewalAt);
+  out += pvRow("Payment", h.payment
+    ? (h.payment.amount ? "$" + esc(h.payment.amount) : "amount not set") +
+      (h.payment.lender ? " \u00b7 " + esc(h.payment.lender) : "") +
+      (h.payment.dueAt ? " \u00b7 due " + esc(fmtDate(h.payment.dueAt)) : "")
+    : "no payment plan entered \u2014 the card is hidden", !h.payment);
+  out += pvRow("Unread messages", String(h.unread || 0));
+  out += "</div></div></div>";
+
+  /* ---- his conversation ---- */
+  out += '<p class="eyebrow" style="margin-top:22px">His messages \u00b7 ' + r.thread.length + "</p>";
+  if (!r.thread.length) out += '<p class="sub">Nothing either way yet.</p>';
+  else {
+    out += '<div class="pvthread">';
+    r.thread.slice(0, 12).forEach(function (m) {
+      out += '<div class="pvmsg pvmsg--' + (m.direction === "in" ? "in" : "out") + '">' +
+        '<span class="pvmsg__w">' + (m.direction === "in" ? "he wrote" : "clinic") +
+        " \u00b7 " + esc(fmtWhen(m.sent_at)) +
+        (m.direction === "out" ? (m.read_at ? " \u00b7 read" : " \u00b7 unread") : "") + "</span>" +
+        (m.title ? "<strong>" + esc(m.title) + "</strong><br>" : "") +
+        esc(String(m.body || "").slice(0, 240)) + "</div>";
+    });
+    out += "</div>";
+  }
+
+  /* ---- what he has logged ---- */
+  out += '<p class="eyebrow" style="margin-top:22px">His check-ins \u00b7 ' + r.checkins.length + "</p>";
+  if (!r.checkins.length) out += '<p class="sub">He has not recorded a day yet.</p>';
+  else {
+    out += '<div class="pvthread">';
+    r.checkins.slice(0, 6).forEach(function (c) {
+      out += '<div class="pvmsg"><span class="pvmsg__w">' + esc(fmtWhen(c.at)) + " \u00b7 " +
+        r.fields.map(function (f) { return esc(f.label) + " " + (c[f.key] || "\u2013"); }).join(", ") +
+        "</span>" + (c.note ? esc(c.note) : "<em>no note</em>") + "</div>";
+    });
+    out += "</div>";
+  }
+
+  const meals = r.logs.filter(function (l) { return l.kind === "meal"; }).length;
+  const training = r.logs.filter(function (l) { return l.kind === "training"; }).length;
+  out += '<p class="sub" style="margin-top:14px">' + meals + " meal " + (meals === 1 ? "entry" : "entries") +
+         ", " + training + " training " + (training === 1 ? "entry" : "entries") + "</p>";
+
+  out += '<button class="btn btn--primary btn--full" data-act="edit" data-id="' + id +
+         '" style="margin-top:20px">Edit what he sees</button>';
+
+  openModal(esc((p.first_name || "") + " " + (p.last_name || "")).trim() + " \u2014 his app", out);
+}
+
+function pvRow(label, value, missing) {
+  return '<div class="pvrow' + (missing ? " pvrow--missing" : "") + '">' +
+    '<span class="pvrow__l">' + esc(label) + "</span>" +
+    '<span class="pvrow__v">' + value + "</span></div>";
 }
 
 /* ==========================================================================
@@ -1598,6 +1741,8 @@ document.addEventListener("click", function (e) {
   if (a === "article") return articleModal(act.dataset.id);
   if (a === "coord") return coordModal(act.dataset.id);
   if (a === "setup") { closeModal(); return setupModal(act.dataset.id); }
+  if (a === "pview") { closeModal(); return patientView(act.dataset.id); }
+  if (a === "pdel") return deletePatient(act.dataset.id);
   if (a === "su-approve") return signupDecide(act.dataset.id, "approve");
   if (a === "su-reject") return signupDecide(act.dataset.id, "reject");
   if (a === "su-link") return signupDecide(act.dataset.id, "link", act.dataset.target);

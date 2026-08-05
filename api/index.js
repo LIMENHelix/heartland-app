@@ -230,6 +230,107 @@ function notificationPayload(msg) {
 }
 
 /* ==========================================================================
+   The patient's own view, built once.
+
+   The console can show a coordinator exactly what a patient sees. That is only
+   worth having if it is the SAME view: a preview assembled separately drifts
+   from the real thing within a release or two and then it is quietly lying
+   about somebody's treatment. So both the patient route and the preview route
+   call this.
+   ========================================================================== */
+
+async function homePayload(p) {
+    const unread = await db.one(
+      "SELECT COUNT(*)::int AS n FROM message_targets WHERE patient_id = $1 AND read_at IS NULL", [p.id]);
+    const now = Date.now();
+    const labs = db.labStatus(p, now);
+    const renewalAt = db.renewalDate(p);
+
+    /* A lab date that has passed but is still recent is worth surfacing: the app
+       cannot know whether the draw actually happened, so it prompts rather than
+       assumes. Beyond 45 days it stops nagging and just shows the next one. */
+    const missed = labs && labs.previous && labs.previous.daysAgo <= 45 ? labs.previous : null;
+
+    /* The patient's point of contact. If nobody is assigned, or they have no
+       direct line recorded, the app shows NO phone button at all rather than
+       falling back to a general number. */
+    let coordinator = null;
+    if (p.coordinator_id) {
+      const c = await db.one(
+        "SELECT name, phone, title, contact_email FROM coordinators WHERE id = $1 AND active = 1",
+        [p.coordinator_id]);
+      if (c && (c.phone || c.contact_email)) {
+        coordinator = { name: c.name, phone: c.phone || null,
+                        email: c.contact_email || null, title: c.title || null };
+      }
+    }
+
+    const payDue = db.nextPaymentDue(p.payment_due_day, now);
+
+  return {
+      coordinator: coordinator,
+      textLine: db.TEXT_LINE,
+      vitality: (function () {
+        /* The coordinator's choice ALWAYS wins. Points are display only and can
+           never silently promote or demote someone; if thresholds are ever
+           configured they only fill in a tier nobody has set by hand. */
+        const t = db.vitalityTier(p.vitality_status) || db.vitalityFromPoints(p.vitality_points);
+        if (!t) return null;
+        return {
+          label: t.label,
+          tierNumber: t.n,
+          discount: t.discount,
+          points: db.n(p.vitality_points),
+          trial: t.trial,
+          treatments: t.treatments,
+          universal: db.VITALITY_UNIVERSAL,
+          footnote: db.VITALITY_FOOTNOTE,
+          progress: db.vitalityProgress(t, p.vitality_points),
+          ladder: db.VITALITY_TIERS.map(function (x) {
+            return { label: x.label, discount: x.discount, current: x.key === t.key,
+                     earned: x.n <= t.n };
+          })
+        };
+      })(),
+      payment: (p.payment_amount || p.lender_name || payDue) ? {
+        amount: p.payment_amount || null,
+        dueAt: payDue,
+        dueInDays: payDue == null ? null : db.daysBetween(payDue, now),
+        lender: p.lender_name || null,
+        lenderPhone: p.lender_phone || null,
+        lenderUrl: p.lender_url || null
+      } : null,
+      firstName: p.first_name,
+      protocol: p.protocol,
+      clinic: p.clinic,
+      supplyLeft: db.supplyLeft(p, now),
+      lastVisitAt: db.n(p.last_visit_at),
+      startDate: db.n(p.start_date),
+      agreementMonths: db.n(p.agreement_months),
+      renewalAt: renewalAt,
+      renewalInDays: renewalAt == null ? null : db.daysBetween(renewalAt, now),
+      labs: labs ? { next: labs.next, missed: missed } : null,
+      unread: unread ? unread.n : 0
+  };
+}
+
+async function threadFor(patientId) {
+  const rows = await db.q(`
+    SELECT m.id, m.title, m.body, m.kind, m.article_id, m.sent_at,
+           m.direction, t.read_at
+      FROM message_targets t JOIN messages m ON m.id = t.message_id
+     WHERE t.patient_id = $1 AND m.direction = 'out'
+    UNION ALL
+    SELECT m.id, m.title, m.body, m.kind, m.article_id, m.sent_at,
+           m.direction, m.sent_at AS read_at
+      FROM messages m
+     WHERE m.direction = 'in' AND m.from_patient_id = $1
+     ORDER BY sent_at DESC LIMIT 200`, [patientId]);
+  rows.forEach(function (r) { r.sent_at = db.n(r.sent_at); r.read_at = db.n(r.read_at); });
+  return rows;
+}
+
+/* ==========================================================================
    Routes
    ========================================================================== */
 
@@ -789,6 +890,58 @@ const routes = {
     send(res, 200, { ok: true, password: pw, email: row.email });
   },
 
+
+  /* ---------------- looking into a patient's app ----------------
+
+     Everything he sees, assembled by the same code that serves him. Read only:
+     there is no way from here to record a check-in as him, mark his messages
+     read, or send anything in his name. Opening it does not touch his record,
+     so his "last seen" stays honest. */
+
+  "GET /api/admin/patient-view": async function (req, res) {
+    const u = await requireCoordinator(req, res); if (!u) return;
+    const id = Number(url(req).searchParams.get("id"));
+    if (!await ownsPatient(u, id)) {
+      return send(res, 403, { error: "That patient is on another coordinator's panel." });
+    }
+    const p = await db.one("SELECT * FROM patients WHERE id = $1", [id]);
+    if (!p) return send(res, 404, { error: "No such patient." });
+
+    const home = await homePayload(p);
+    const thread = await threadFor(p.id);
+    const checkins = await db.q(
+      "SELECT * FROM checkins WHERE patient_id = $1 ORDER BY at DESC LIMIT 30", [p.id]);
+    const logs = await db.q(
+      "SELECT * FROM logs WHERE patient_id = $1 ORDER BY at DESC LIMIT 30", [p.id]);
+    checkins.forEach(function (r) { r.at = db.n(r.at); });
+    logs.forEach(function (r) { r.at = db.n(r.at); });
+
+    /* Whether he can actually open the app at all, which is the first thing a
+       coordinator wants to know when he says he cannot see something. */
+    const devices = await db.one(
+      "SELECT COUNT(*)::int AS n FROM devices WHERE patient_id = $1 AND active = 1", [id]);
+    const tokens = await db.one(
+      "SELECT COUNT(*)::int AS n FROM patient_tokens WHERE patient_id = $1 AND revoked_at IS NULL", [id]);
+
+    send(res, 200, {
+      home: home,
+      thread: thread,
+      checkins: checkins,
+      logs: logs,
+      fields: db.CHECKIN_FIELDS,
+      scaleMax: db.SCALE_MAX,
+      access: {
+        hasAccount: !!p.pass_hash,
+        accountStatus: p.account_status || null,
+        signedInDevices: tokens.n,
+        notificationsOn: devices.n > 0,
+        enrolledAt: db.n(p.enrolled_at),
+        lastSeenAt: db.n(p.last_seen_at),
+        email: p.email || null
+      }
+    });
+  },
+
   /* ---------------- the evening nudge ----------------
 
      A daily habit that nobody prompts lasts about a week. Vercel calls this
@@ -1009,96 +1162,12 @@ const routes = {
   "GET /api/p/home": async function (req, res) {
     const p = await requirePatient(req, res); if (!p) return;
     await db.recordEvent(p.id, "open");
-    const unread = await db.one(
-      "SELECT COUNT(*)::int AS n FROM message_targets WHERE patient_id = $1 AND read_at IS NULL", [p.id]);
-    const now = Date.now();
-    const labs = db.labStatus(p, now);
-    const renewalAt = db.renewalDate(p);
-
-    /* A lab date that has passed but is still recent is worth surfacing: the app
-       cannot know whether the draw actually happened, so it prompts rather than
-       assumes. Beyond 45 days it stops nagging and just shows the next one. */
-    const missed = labs && labs.previous && labs.previous.daysAgo <= 45 ? labs.previous : null;
-
-    /* The patient's point of contact. If nobody is assigned, or they have no
-       direct line recorded, the app shows NO phone button at all rather than
-       falling back to a general number. */
-    let coordinator = null;
-    if (p.coordinator_id) {
-      const c = await db.one(
-        "SELECT name, phone, title, contact_email FROM coordinators WHERE id = $1 AND active = 1",
-        [p.coordinator_id]);
-      if (c && (c.phone || c.contact_email)) {
-        coordinator = { name: c.name, phone: c.phone || null,
-                        email: c.contact_email || null, title: c.title || null };
-      }
-    }
-
-    const payDue = db.nextPaymentDue(p.payment_due_day, now);
-
-    send(res, 200, {
-      coordinator: coordinator,
-      textLine: db.TEXT_LINE,
-      vitality: (function () {
-        /* The coordinator's choice ALWAYS wins. Points are display only and can
-           never silently promote or demote someone; if thresholds are ever
-           configured they only fill in a tier nobody has set by hand. */
-        const t = db.vitalityTier(p.vitality_status) || db.vitalityFromPoints(p.vitality_points);
-        if (!t) return null;
-        return {
-          label: t.label,
-          tierNumber: t.n,
-          discount: t.discount,
-          points: db.n(p.vitality_points),
-          trial: t.trial,
-          treatments: t.treatments,
-          universal: db.VITALITY_UNIVERSAL,
-          footnote: db.VITALITY_FOOTNOTE,
-          progress: db.vitalityProgress(t, p.vitality_points),
-          ladder: db.VITALITY_TIERS.map(function (x) {
-            return { label: x.label, discount: x.discount, current: x.key === t.key,
-                     earned: x.n <= t.n };
-          })
-        };
-      })(),
-      payment: (p.payment_amount || p.lender_name || payDue) ? {
-        amount: p.payment_amount || null,
-        dueAt: payDue,
-        dueInDays: payDue == null ? null : db.daysBetween(payDue, now),
-        lender: p.lender_name || null,
-        lenderPhone: p.lender_phone || null,
-        lenderUrl: p.lender_url || null
-      } : null,
-      firstName: p.first_name,
-      protocol: p.protocol,
-      clinic: p.clinic,
-      supplyLeft: db.supplyLeft(p, now),
-      lastVisitAt: db.n(p.last_visit_at),
-      startDate: db.n(p.start_date),
-      agreementMonths: db.n(p.agreement_months),
-      renewalAt: renewalAt,
-      renewalInDays: renewalAt == null ? null : db.daysBetween(renewalAt, now),
-      labs: labs ? { next: labs.next, missed: missed } : null,
-      unread: unread ? unread.n : 0
-    });
+    send(res, 200, await homePayload(p));
   },
 
   "GET /api/p/messages": async function (req, res) {
     const p = await requirePatient(req, res); if (!p) return;
-    /* One conversation: what the clinic sent this patient, and what they asked. */
-    const rows = await db.q(`
-      SELECT m.id, m.title, m.body, m.kind, m.article_id, m.sent_at,
-             m.direction, t.read_at
-        FROM message_targets t JOIN messages m ON m.id = t.message_id
-       WHERE t.patient_id = $1 AND m.direction = 'out'
-      UNION ALL
-      SELECT m.id, m.title, m.body, m.kind, m.article_id, m.sent_at,
-             m.direction, m.sent_at AS read_at
-        FROM messages m
-       WHERE m.direction = 'in' AND m.from_patient_id = $1
-       ORDER BY sent_at DESC LIMIT 200`, [p.id]);
-    rows.forEach(function (r) { r.sent_at = db.n(r.sent_at); r.read_at = db.n(r.read_at); });
-    send(res, 200, { messages: rows });
+    send(res, 200, { messages: await threadFor(p.id) });
   },
 
   "POST /api/p/message-read": async function (req, res) {

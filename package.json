@@ -16,7 +16,8 @@
     "test:checkin": "node scripts/test/checkin.js",
     "test:team": "node scripts/test/team.js",
     "test:reminder": "node scripts/test/reminder.js",
-    "test:password": "node scripts/test/password.js"
+    "test:password": "node scripts/test/password.js",
+    "test:preview": "node scripts/test/preview.js"
   },
   "dependencies": {
     "pg": "^8.13.1"
