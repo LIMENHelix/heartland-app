@@ -606,13 +606,13 @@ body { background: var(--ink-d); color: var(--text-d); }
      Re-measure with scripts/test/contrast.js after touching any of this: the
      failure is invisible in a screenshot until you look for it. */
   background-image:
-    linear-gradient(96deg, var(--ink-d) 0%, rgba(11,15,18,.97) 44%,
-                           rgba(11,15,18,.55) 68%, rgba(11,15,18,.10) 100%),
+    linear-gradient(96deg, var(--ink-d) 0%, rgba(11,15,18,.98) 50%,
+                           rgba(11,15,18,.66) 72%, rgba(11,15,18,.12) 100%),
     linear-gradient(180deg, rgba(11,15,18,.30) 0%, rgba(11,15,18,.55) 45%,
                             rgba(11,15,18,.94) 74%, var(--ink-d) 89%),
     url("img/backdrop.webp");
-  background-size: auto, auto, min(118%, 1500px) auto;
-  background-position: center, center, 10% top;
+  background-size: auto, auto, cover;
+  background-position: center, center, center 18%;
   background-repeat: no-repeat, no-repeat, no-repeat;
 }
 /* On a phone the frame is far narrower than the photograph, so at 100% the
@@ -621,8 +621,11 @@ body { background: var(--ink-d); color: var(--text-d); }
    on a 390px screen. Pushed right so it sits beside the headline, not under
    it. */
 @media (max-width: 620px) {
-  .backdrop { background-size: auto, auto, 165% auto;
-              background-position: center, center, 18% -2%; }
+  /* Centred, so a phone gets the FACE. `cover` on a tall narrow screen crops
+     a portrait hard from the sides, and off-centre it was showing mane only:
+     recognisable as fur, not as a lion. */
+  .backdrop { background-size: auto, auto, cover;
+              background-position: center, center, 50% 8%; }
 }
 
 .topbar { background: rgba(11,15,18,.86); border-bottom: 1px solid var(--line-d);
@@ -872,8 +875,8 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
   .is-inside .backdrop {
     /* Bigger and lower than the front screen's, so there is something behind
        the cards further down the page rather than only in the top corner. */
-    background-size: auto, auto, min(150%, 1900px) auto;
-    background-position: center, center, 22% top;
+    background-size: auto, auto, cover;
+    background-position: center, center, center 16%;
     background-image:
       linear-gradient(96deg, rgba(11,15,18,.86) 0%, rgba(11,15,18,.68) 44%,
                              rgba(11,15,18,.28) 72%, rgba(11,15,18,0) 100%),

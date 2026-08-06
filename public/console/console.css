@@ -204,7 +204,9 @@ body {
   background: var(--cream); border: 1px solid var(--line); color: var(--muted);
 }
 .tagline--urgent { background: #FDF2E2; border-color: #E8C89A; color: var(--rust-dark); }
-.tagline--warn { background: #FBF3E0; border-color: #E8D9A8; color: var(--gold-deep); }
+/* #8D6E25 on this fill is 4.33:1, which is a fail at 12.5px however bold it
+   is. Darkened just enough to clear 4.5 with the hue kept. */
+.tagline--warn { background: #FBF3E0; border-color: #E8D9A8; color: #876A24; }
 .tagline__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
 
 /* ---- rows ---- */
@@ -673,41 +675,41 @@ body {
      bottoms out at rgb(162,144,128), which navy text clears at 4.5:1 even with
      NO veil at all. A photograph with real shadows in it caps out around 0.95
      no matter what you do, which is why this one is deliberately high-key. */
-  --backdrop-veil: 0;
+  --backdrop-veil: .18;
   --side-w: 236px;
 }
 
-  /* WHY THIS IS NOT `cover`.
+/* THE PHOTOGRAPH IS DARK, SO THE PAGE AROUND THE CARDS IS DARK.
 
-     The picture that was here came from the 192px app icon, upscaled to
-     1280x720 and then blown up AGAIN by `cover` to fill the viewport: about
-     ten times its real size. It did not read as a lion, it read as an orange
-     blur, and no CSS setting fixes a 192px source.
+     This is the same lion as the app icon, at its own size and its own
+     colours, covering the whole page. There is no way to have that AND dark
+     text floating on it: the image bottoms out at true black, and navy on
+     black is 1.2:1. The earlier attempt to have both washed the picture into a
+     grey ghost, which is what "cream coloured lion" meant.
 
-     Two things changed. The source is a real 1280x720 photograph, and the
-     sizing is now capped instead of stretched. `cover` on a fixed full-height
-     layer is the worst case for a wide photo: a tall phone crops it to a
-     vertical sliver and magnifies whatever is left. Pinning it to the WIDTH,
-     capped at its native size and anchored to the bottom, means it is never
-     enlarged past 1:1 on a normal screen and the horizon always lands where
-     it was composed to land. Above it is flat page colour, which is what the
-     top of the frame nearly is anyway. */
+     So the split is by surface, not by wishful thinking. Anything with words
+     in it sits on an opaque white card and is completely unaffected. Anything
+     OUTSIDE a card is on the photograph, and wears cream instead of navy. The
+     selector list at the bottom of this file is that rule, and it catches
+     every direct child of #main rather than named elements, because the one
+     that got missed last time was an "empty" placeholder nobody thinks of as
+     a text style.
+
+     Verified with scripts/test/contrast.js, not by looking at it. */
 .backdrop {
   position: fixed;
   left: var(--side-w); right: 0; top: 0; bottom: 0;
   z-index: 0;
   pointer-events: none;
-  background-color: var(--cream);
+  background-color: #0A0806;
   background-image:
-    linear-gradient(rgba(247, 243, 235, var(--backdrop-veil)),
-                    rgba(247, 243, 235, var(--backdrop-veil))),
+    /* Just enough to stop the very brightest mane from fighting a white card
+       edge. Nothing like a veil: the picture keeps its own colour. */
+    linear-gradient(rgba(10, 8, 6, var(--backdrop-veil)),
+                    rgba(10, 8, 6, var(--backdrop-veil))),
     url("img/backdrop.webp");
-  /* Bottom right, and small enough to sit in the gap under the content
-     rather than behind it. Full width put the lion's head exactly where the
-     cards are, so what showed was four legs and a tail: a headless animal
-     reads as a mistake, where a whole one in the corner reads as a choice. */
-  background-size: auto, min(62%, 820px) auto;
-  background-position: center, right -2% bottom -1%;
+  background-size: auto, cover;
+  background-position: center, center 22%;
   background-repeat: no-repeat;
 }
 
@@ -736,16 +738,41 @@ body {
    the backdrop. Grey there is the pair that fails; navy clears it. Catching the
    whole set rather than named selectors, because the one that got missed the
    first time was an "empty" placeholder nobody thinks of as a text style. */
+/* LOOSE TEXT GETS ITS OWN SURFACE, IT DOES NOT GET A COLOUR.
+
+   Cream was tried first and failed where it mattered: 2.06:1 on the lit mane.
+   The photograph runs from true black to a bright gold, so there is no single
+   ink that clears all of it, and a text-shadow is a look rather than a fix -
+   it does nothing for the contrast ratio a reader actually gets.
+
+   A small dark chip under the words does fix it, and it holds no matter what
+   part of the picture the page happens to scroll past. Text INSIDE a card is
+   untouched: it already has an opaque white surface. */
 #main > .head .eyebrow,
 #main > .eyebrow,
-#main > .notice,
 #main > .empty,
 #main > p,
 #main > .sub,
 #main > .field__h {
-  color: var(--navy);
+  display: inline-block;
+  color: var(--cream);
+  background: rgba(10, 8, 6, .74);
+  -webkit-backdrop-filter: blur(7px);
+          backdrop-filter: blur(7px);
+  border-radius: 999px;
+  padding: 5px 12px;
 }
-#main > .notice { background: rgba(255, 255, 255, .92); }
+#main > .empty, #main > p {
+  display: block; border-radius: var(--r); padding: 12px 16px;
+}
+#main > .head .h1 {
+  color: var(--cream);
+  text-shadow: 0 2px 18px rgba(0, 0, 0, .9), 0 1px 4px rgba(0, 0, 0, .8);
+}
+/* A notice is already a box, so it keeps its own white surface. */
+#main > .notice {
+  background: rgba(255, 255, 255, .95); color: var(--navy); text-shadow: none;
+}
 
 
 /* ==========================================================================
@@ -858,5 +885,9 @@ body {
 .mean__l { display: block; font-size: 12.5px; color: var(--muted); margin-top: 5px; }
 .mean__tag { display: block; font: 700 10px/1.3 var(--body); letter-spacing: .1em;
              text-transform: uppercase; color: var(--gold-deep); margin-top: 7px; }
-.card--off { opacity: .62; }
+/* NOT opacity. Fading the whole card let the photograph behind it through,
+   which put this card's own buttons on the lion: "Put it live" measured
+   2.01:1. A drafted piece should look quieter, not become a window. */
+.card--off { background: #F2EEE6; border-style: dashed; }
+.card--off .ckname, .card--off .sub { color: var(--muted); }
 .textarea--tall { min-height: 210px; }

@@ -987,21 +987,17 @@ main {
    The home hero photograph sits on top of this and is unaffected.
    ========================================================================== */
 
-:root { --backdrop-veil: 0; }
+:root { --backdrop-veil: .18; }
 
 .backdrop {
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background-color: var(--cream);
   background-image:
-    linear-gradient(rgba(247, 243, 235, var(--backdrop-veil)),
-                    rgba(247, 243, 235, var(--backdrop-veil))),
+    linear-gradient(rgba(10, 8, 6, var(--backdrop-veil)),
+                    rgba(10, 8, 6, var(--backdrop-veil))),
 url("img/backdrop.webp");
-  /* Bottom right, and small enough to sit in the gap under the content
-     rather than behind it. Full width put the lion's head exactly where the
-     cards are, so what showed was four legs and a tail: a headless animal
-     reads as a mistake, where a whole one in the corner reads as a choice. */
-  background-size: auto, min(62%, 820px) auto;
-  background-position: center, right -2% bottom -1%;
+  background-size: auto, cover;
+  background-position: center, center 20%;
   background-repeat: no-repeat;
 }
 
@@ -1016,3 +1012,13 @@ main, .topbar, .tabbar, .sidenav, .sheet, .gate { position: relative; z-index: 1
 .screen > .eyebrow { color: var(--navy); }
 
 @media print { .backdrop { display: none; } }
+
+
+/* The photograph is dark now, so the page colour behind it is too and the few
+   pieces of text that sit outside a card wear cream. Everything with real
+   content in it is on an opaque card and is untouched. */
+body { background: #0A0806; }
+main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty {
+  color: var(--cream);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, .85), 0 1px 3px rgba(0, 0, 0, .7);
+}

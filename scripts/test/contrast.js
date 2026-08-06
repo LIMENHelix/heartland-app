@@ -65,8 +65,15 @@ const FIND = `(() => {
     if (r.bottom < 0 || r.top > innerHeight) continue;
     const m = /rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/.exec(cs.color);
     if (!m) continue;
+    /* The corner radius, because a rounded element's own caps are not
+       background. A fully rounded pill curves in by half its height at each
+       end, and sampling across that reads the page behind the pill. */
+    const rad = Math.max.apply(null, [cs.borderTopLeftRadius, cs.borderTopRightRadius,
+      cs.borderBottomLeftRadius, cs.borderBottomRightRadius].map(function (x) {
+        return parseFloat(x) || 0; }));
     out.push({
       text: txt.slice(0, 44), size: parseFloat(cs.fontSize), weight: cs.fontWeight,
+      radius: Math.min(rad, r.height / 2),
       color: [+m[1], +m[2], +m[3]],
       box: [Math.max(0, Math.round(r.left)), Math.round(r.top + scrollY),
             Math.round(r.width), Math.round(r.height)]
@@ -116,8 +123,9 @@ const SAMPLE = `(async (dataUrl, boxes) => {
        couple of pixels was not enough, because an 8px radius curves further in
        than that. Glyphs live in the vertical middle, so that is what gets
        measured. */
-    const bx = b.box[0] + 2;
-    const w = Math.min(b.box[2] - 4, c.width - bx);
+    const pad = Math.max(2, Math.min(b.radius || 0, b.box[2] / 3));
+    const bx = b.box[0] + pad;
+    const w = Math.min(b.box[2] - pad * 2, c.width - bx);
     const band = Math.max(1, Math.round(b.box[3] * 0.5));
     const by = b.box[1] + Math.round((b.box[3] - band) / 2);
     const h = Math.min(band, c.height - by);
@@ -155,12 +163,21 @@ async function main() {
   await cdp.send("Emulation.setDeviceMetricsOverride",
     { width: W, height: H, deviceScaleFactor: 1, mobile: W < 600 });
 
-  /* Land somewhere with a real device key so the app is past onboarding. */
+  /* Land on the origin first, so any setup runs against the right one. */
   await cdp.send("Page.navigate", { url: new URL(URL_).origin + "/daily/" });
   await sleep(1500);
   await cdp.send("Runtime.evaluate", {
     expression: 'localStorage.setItem("hmh.daily.key","contrastcheckAAAA' +
                 Math.floor(Math.random() * 1e6) + '")' });
+  /* --setup runs arbitrary JS on the origin before the real navigation, which
+     is how the console gets a session: its pages are behind a login and
+     measuring a login screen measures nothing. */
+  const setupIdx = process.argv.indexOf("--setup");
+  if (setupIdx > -1) {
+    await cdp.send("Runtime.evaluate",
+      { expression: process.argv[setupIdx + 1], awaitPromise: true });
+    await sleep(900);
+  }
   await cdp.send("Page.navigate", { url: URL_ });
   await sleep(3500);
 
@@ -224,7 +241,8 @@ async function main() {
     const sampled = await cdp.send("Runtime.evaluate", {
       expression: SAMPLE
         .replace("DATA_URL", JSON.stringify("data:image/png;base64," + shot.data))
-        .replace("BOXES", JSON.stringify(here.map(o => ({ box: o.box, color: o.it.color })))),
+        .replace("BOXES", JSON.stringify(here.map(o =>
+          ({ box: o.box, color: o.it.color, radius: o.it.radius })))),
       awaitPromise: true, returnByValue: true
     });
     JSON.parse(sampled.result.value).forEach((m, k) => {
