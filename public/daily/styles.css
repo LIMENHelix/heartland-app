@@ -807,3 +807,90 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
                             rgba(11,15,18,.97) 68%, var(--ink-d) 84%),
     url("img/backdrop.webp");
 }
+
+
+/* ==========================================================================
+   Glass panels.
+
+   The lion shows through the cards instead of sitting behind a wall of them.
+
+   THE BLUR IS NOT DECORATION, IT IS WHAT MAKES THIS LEGAL. A flat translucent
+   panel puts small text directly on a photograph, and the mane is the
+   brightest thing in the frame: measured, the rating screen's intro failed at
+   2.39:1 the last time text landed on it. Blurring what is behind the panel
+   turns a high-contrast photograph into a smooth wash, so the worst pixel
+   under any given word moves a long way toward the average and stays put as
+   the eye travels along the line.
+
+   Everything here was re-measured on all four screens with
+   scripts/test/contrast.js. Change the alpha and measure again: this is
+   exactly the kind of edit that looks fine in a screenshot and fails.
+
+   @supports, because a browser without backdrop-filter would render the alpha
+   and none of the blur, which is the unreadable combination rather than a
+   slightly plainer one. Those browsers keep the solid panels. */
+
+@supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+
+  /* .rate and .lede--sm are in this list because of a measurement, not a
+     preference. They were the only text on the rating screen with no panel
+     under it, so raising the lion to make the glass worth having put them
+     straight back on the mane: 2.13:1 for the intro, 3.78:1 for a scale's end
+     label. Everything on that screen now sits on glass. */
+  .card, .goal, .prompt, .newscard, .special, .sheet__panel, .rate, .lede--sm {
+    background-color: rgba(17, 23, 29, .46);
+    -webkit-backdrop-filter: blur(18px) saturate(125%);
+            backdrop-filter: blur(18px) saturate(125%);
+    border-color: rgba(226, 232, 238, .13);
+  }
+
+  /* The offer keeps its gradient and only loses opacity, so it stays the
+     brightest card on the page. That was the point of it. */
+  .special {
+    background-image: linear-gradient(180deg, rgba(29,38,46,.72) 0%, rgba(20,27,33,.55) 100%);
+    border-color: var(--gold);
+  }
+  .prompt {
+    background-image: linear-gradient(180deg, rgba(29,38,46,.70) 0%, rgba(20,27,33,.52) 100%);
+    border-color: var(--gold);
+  }
+  .card--nudge, .newscard:hover { border-color: var(--gold); }
+  .goal.is-on { background-color: rgba(32,41,50,.66); border-color: var(--gold); }
+
+  /* Small controls get the tint without a blur layer of their own. Twenty-five
+     scale buttons each compositing their own backdrop is a real cost on an old
+     phone, and they are small enough that a flat tint reads the same. */
+  .scale__b, .input, .textarea, .slot__t {
+    background-color: rgba(11, 15, 18, .55);
+    border-color: rgba(226, 232, 238, .15);
+  }
+  .scale__b.is-on { background-color: var(--gold); border-color: var(--gold); }
+
+  /* Now that the cards are see-through there is something to see, so the lion
+     comes back up from where it was pushed to keep text off it. The blur is
+     carrying the readability that the darkness used to. */
+  .is-inside .backdrop {
+    /* Bigger and lower than the front screen's, so there is something behind
+       the cards further down the page rather than only in the top corner. */
+    background-size: auto, auto, min(150%, 1900px) auto;
+    background-position: center, center, 22% top;
+    background-image:
+      linear-gradient(96deg, rgba(11,15,18,.86) 0%, rgba(11,15,18,.68) 44%,
+                             rgba(11,15,18,.28) 72%, rgba(11,15,18,0) 100%),
+      linear-gradient(180deg, rgba(11,15,18,.18) 0%, rgba(11,15,18,.40) 40%,
+                              rgba(11,15,18,.80) 70%, var(--ink-d) 92%),
+      url("img/backdrop.webp");
+  }
+}
+
+/* The rating blocks read as panels now, so they need a panel's padding. */
+@supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+  .rate {
+    border: 1px solid rgba(226,232,238,.13); border-radius: var(--r-lg);
+    padding: 16px 16px 14px; margin-bottom: 12px;
+  }
+  .lede--sm {
+    border: 1px solid rgba(226,232,238,.13); border-radius: var(--r-lg);
+    padding: 14px 16px; margin: 0 0 18px;
+  }
+}
