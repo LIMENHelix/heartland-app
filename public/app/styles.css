@@ -1022,3 +1022,61 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty {
   color: var(--cream);
   text-shadow: 0 1px 14px rgba(0, 0, 0, .85), 0 1px 3px rgba(0, 0, 0, .7);
 }
+
+
+/* ==========================================================================
+   Glass panels: see the lion through the cards, solid under the pointer.
+
+   The reasoning, the measurements and the two gates are written out once in
+   public/console/console.css. The short version:
+
+   - Only the panel's own background-color carries alpha. Never element
+     opacity, which drags the card's children onto the photograph with it.
+   - contrast() + brightness() in the backdrop filter compress the lion into
+     a light band, so the composite never falls below rgb(157) even over the
+     picture's true black: ink 7.17:1, navy 4.95:1.
+   - --muted grey needs rgb(236) to clear 4.5:1 and cannot get it here, so it
+     is remapped to navy inside a glass panel.
+
+   THE POINTER GATE MATTERS MORE ON THIS SURFACE THAN ANYWHERE ELSE. This is
+   a home-screen PWA; most of the men who open it are on a phone, where there
+   is no hover and the solid state would never arrive. They keep the opaque
+   cards this was designed with. The glass is for the desktop browser.
+   ========================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+
+    :root { --glass: .35; --glass-on: .97; }
+
+    /* .notice, .notice--alert and .check are deliberately absent. The first
+       two are how this app says something is wrong, and .check is the symptom
+       list that routes chest pain and self-harm to 911/988. Nothing on that
+       path becomes a window. */
+    .card, .study, .cite {
+      --muted: var(--navy);
+      background-color: rgba(255, 255, 255, var(--glass));
+      -webkit-backdrop-filter: blur(14px) contrast(.38) brightness(1.32) saturate(1.5);
+              backdrop-filter: blur(14px) contrast(.38) brightness(1.32) saturate(1.5);
+      transition: background-color .17s var(--ease), border-color .17s var(--ease),
+                  box-shadow .17s var(--ease);
+    }
+
+    .card:hover, .card:focus-within,
+    .study:hover, .study:focus-within,
+    .cite:hover, .cite:focus-within {
+      --muted: #6B6B6B;
+      background-color: rgba(255, 255, 255, var(--glass-on));
+      -webkit-backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1);
+              backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1);
+      box-shadow: var(--shadow-lift);
+    }
+
+    /* A sheet sits on its own scrim, not on the lion. */
+    .sheet__panel { backdrop-filter: none; -webkit-backdrop-filter: none; }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .study, .cite { transition: none; }
+}

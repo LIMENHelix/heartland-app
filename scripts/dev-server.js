@@ -19,11 +19,16 @@ const handler = require("../api/index");
 const PORT = process.env.PORT || 8080;
 const PUBLIC = path.join(__dirname, "..", "public");
 
+/* .webp is not optional: the lion backdrop on all three surfaces is a .webp,
+   and serving it as application/octet-stream is exactly the difference between
+   measuring the page and measuring a blank ground. */
 const MIME = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8",
   ".webmanifest": "application/manifest+json", ".png": "image/png",
-  ".svg": "image/svg+xml", ".ico": "image/x-icon"
+  ".svg": "image/svg+xml", ".ico": "image/x-icon", ".webp": "image/webp",
+  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".mp3": "audio/mpeg",
+  ".woff2": "font/woff2"
 };
 
 function serveStatic(res, rel) {
@@ -50,6 +55,7 @@ http.createServer(function (req, res) {
   if (pathname === "/") return serveStatic(res, "console/index.html");
   if (pathname === "/console" || pathname === "/console/") return serveStatic(res, "console/index.html");
   if (pathname === "/app" || pathname === "/app/") return serveStatic(res, "app/index.html");
+  if (pathname === "/daily" || pathname === "/daily/") return serveStatic(res, "daily/index.html");
 
   serveStatic(res, pathname.replace(/^\//, ""));
 }).listen(PORT, function () {

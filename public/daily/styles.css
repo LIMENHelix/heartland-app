@@ -897,3 +897,75 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
     padding: 14px 16px; margin: 0 0 18px;
   }
 }
+
+
+/* ==========================================================================
+   Thinner glass where there is a pointer, solid under it.
+
+   THE BLOCK ABOVE IS NOT CHANGED. .46 is what phones get, and phones are
+   most of this app: there is no hover on a touch screen, so a panel that
+   only becomes readable under a pointer would never become readable at all.
+   Everything here is an override for the desktop browser, on top of that.
+
+   This surface is the mirror of the console. There the panel is white and
+   the filter has to lift the lion so dark text survives; here the panel is
+   ink and the filter has to push it DOWN so light text survives. Derived
+   ceilings, the largest composite each colour can sit on and still clear
+   4.5:1:
+
+       --text-d #F2EFE9  ->  rgb(109)
+       --dim-d  #9AA7B1  ->  rgb(59)
+       --gold   #B49243  ->  rgb(47)      <- the one that binds
+
+   At .26 with contrast(.40) brightness(.40) the composite runs rgb(26) over
+   the picture's black to rgb(56) over the lit mane. --text-d and --dim-d
+   both clear that. Gold does not, at any transparency worth having, so gold
+   is remapped to --gold-soft inside a thin panel: a lighter gold on a
+   lighter ground, rather than the same gold going quietly unreadable.
+   ========================================================================== */
+
+@media (hover: hover) and (pointer: fine) {
+  @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+
+    :root { --glass: .26; --glass-on: .93; }
+
+    .card, .goal, .prompt, .newscard, .special, .rate, .lede--sm {
+      --gold: var(--gold-soft);
+      background-color: rgba(11, 15, 18, var(--glass));
+      -webkit-backdrop-filter: blur(14px) contrast(.40) brightness(.40) saturate(1.45);
+              backdrop-filter: blur(14px) contrast(.40) brightness(.40) saturate(1.45);
+      transition: background-color .17s ease, border-color .17s ease;
+    }
+
+    /* The offer and the prompt keep their gradients, so they are re-declared
+       rather than inherited: a background-image left in place would paint
+       over the alpha and the panel would not thin at all. */
+    .special {
+      background-image: linear-gradient(180deg, rgba(29,38,46,.34) 0%, rgba(20,27,33,.20) 100%);
+    }
+    .prompt {
+      background-image: linear-gradient(180deg, rgba(29,38,46,.32) 0%, rgba(20,27,33,.18) 100%);
+    }
+
+    .card:hover, .card:focus-within,
+    .goal:hover, .goal:focus-within,
+    .prompt:hover, .prompt:focus-within,
+    .newscard:hover, .newscard:focus-within,
+    .special:hover, .special:focus-within,
+    .rate:hover, .rate:focus-within,
+    .lede--sm:hover, .lede--sm:focus-within {
+      --gold: #B49243;
+      background-color: rgba(11, 15, 18, var(--glass-on));
+      background-image: none;
+      -webkit-backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1.25);
+              backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1.25);
+    }
+
+    /* A sheet is over its own scrim. Nothing behind it to reveal. */
+    .sheet__panel { background-color: var(--panel-d); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card, .goal, .prompt, .newscard, .special, .rate, .lede--sm { transition: none; }
+}
