@@ -913,23 +913,37 @@ body {
    lands nowhere near rgb(236) and every small grey label in it fails long
    before the body text does. Transparency alone cannot be made to work here.
 
-   SO THE FILTER DOES THE WORK, NOT THE ALPHA. contrast() pulls the whole
-   photograph toward mid-grey and brightness() lifts it: the same "compress
-   luminance into a light band" step the offline image pipeline uses
-   (docs/BACKDROP.md), done live against whatever is actually behind the
-   panel. Modelled across the lion's entire range, black to white:
+   AND THE FIRST ANSWER TO THAT WAS WRONG, IN A WAY WORTH RECORDING. It used
+   contrast(.38) to crush the photograph into a flat light band, which made
+   every ratio pass and turned the panels into grey slabs: the numbers were
+   fine and you could no longer see the lion, which was the entire point of
+   doing it. Rendered side by side against five alternatives on the real
+   image, the crush was the thing destroying it, not the alpha.
 
-       lion rgb(  0) -> composite rgb(157)   ink 7.17:1   navy 4.95:1
-       lion rgb( 90) -> composite rgb(186)   ink 10.06:1  navy 6.94:1
-       lion rgb(255) -> composite rgb(240)   ink 17.09:1  navy 11.78:1
+   So the crush is gone. brightness() lifts the picture without flattening
+   it, saturate() keeps its colour, and the blur is small enough to leave the
+   mane legible as fur rather than as a wash. What that costs is stated
+   plainly below rather than engineered away.
 
-   The worst case is the whole picture's worst case, not this screen's, so
-   scrolling cannot find a pixel that breaks it. An 83-step spread survives,
-   which is what keeps it a lion rather than a smear.
+   THE PANEL FAILS AA AT REST, EVERYWHERE, AND THAT IS THE INSTRUCTION.
+   Measured, not estimated: 18 of 18 text runs fail, the worst at 1.51:1 on
+   rgb(74). This is not "a little low". Until a panel is hovered its text is
+   grey on grey, and the operator chose that with the number in front of him,
+   twice: the photograph wins while you are looking at the page, and the
+   panel becomes a panel when you go to read one. Hover is solid at .97,
+   which puts ink near 17:1, so reading is done there.
 
-   --muted is REMAPPED to navy inside a glass panel because rgb(236) is
-   unreachable. That is the same call already made for text sitting on the
-   backdrop elsewhere in this file, applied one layer in.
+   Do not quietly "fix" this by raising --glass. It is one number and the
+   effect is close to linear, so it is trivial to change if the decision is
+   ever revisited, but it IS the decision and not an oversight. What must not
+   come back is the contrast crush: that traded the entire visual effect for
+   numbers, which is the opposite of the trade being made here.
+
+   --muted is still REMAPPED to navy inside a glass panel. It cannot reach
+   rgb(236) here by any route, and navy is what this file already puts on the
+   lion elsewhere. The text-shadow at rest is a readability aid, not a
+   contrast fix: it does nothing for the measured ratio and is not counted as
+   if it did.
 
    TWO GATES, both deliberate:
    - (hover: hover) and (pointer: fine). On a touch screen there is no
@@ -945,7 +959,7 @@ body {
 @media (hover: hover) and (pointer: fine) {
   @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
 
-    :root { --glass: .35; --glass-on: .97; }
+    :root { --glass: .28; --glass-on: .97; }
 
     /* .notice and .dangerbox are NOT in this list. An alert is supposed to be
        the loudest thing on the screen; making a warning see-through is the
@@ -954,10 +968,18 @@ body {
     .card:not(.card--off), .stat, .pcard, .waitrow, .matchrow {
       --muted: var(--navy);
       background-color: rgba(255, 255, 255, var(--glass));
-      -webkit-backdrop-filter: blur(14px) contrast(.38) brightness(1.32) saturate(1.5);
-              backdrop-filter: blur(14px) contrast(.38) brightness(1.32) saturate(1.5);
+      -webkit-backdrop-filter: blur(5px) brightness(1.28) saturate(1.12);
+              backdrop-filter: blur(5px) brightness(1.28) saturate(1.12);
       transition: background-color .17s var(--ease), border-color .17s var(--ease),
                   box-shadow .17s var(--ease);
+    }
+
+    /* A soft white halo, so dark type stays followable where the picture goes
+       dark. It is a legibility aid and nothing more: it does not change the
+       measured ratio, and no number reported anywhere assumes it does. It is
+       dropped on hover, where the surface is solid and it would only smear. */
+    .card:not(.card--off) *, .stat *, .pcard *, .waitrow *, .matchrow * {
+      text-shadow: 0 0 5px rgba(255, 255, 255, .92), 0 0 11px rgba(255, 255, 255, .7);
     }
 
     /* Under the pointer it becomes an ordinary card again: full white, no
@@ -970,10 +992,15 @@ body {
     .matchrow:hover, .matchrow:focus-within {
       --muted: #6B6B6B;
       background-color: rgba(255, 255, 255, var(--glass-on));
-      -webkit-backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1);
-              backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1);
+      -webkit-backdrop-filter: blur(5px) brightness(1) saturate(1);
+              backdrop-filter: blur(5px) brightness(1) saturate(1);
       box-shadow: var(--shadow-lift);
     }
+    .card:not(.card--off):hover *, .card:not(.card--off):focus-within *,
+    .stat:hover *, .stat:focus-within *,
+    .pcard:hover *, .pcard:focus-within *,
+    .waitrow:hover *, .waitrow:focus-within *,
+    .matchrow:hover *, .matchrow:focus-within * { text-shadow: none; }
 
     /* The panel a modal shows is over a scrim, not over the lion. Nothing to
        see through, and a see-through dialog is just a hard-to-read dialog. */

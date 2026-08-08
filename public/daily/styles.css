@@ -917,24 +917,33 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
        --dim-d  #9AA7B1  ->  rgb(59)
        --gold   #B49243  ->  rgb(47)      <- the one that binds
 
-   At .26 with contrast(.40) brightness(.40) the composite runs rgb(26) over
-   the picture's black to rgb(56) over the lit mane. --text-d and --dim-d
-   both clear that. Gold does not, at any transparency worth having, so gold
-   is remapped to --gold-soft inside a thin panel: a lighter gold on a
-   lighter ground, rather than the same gold going quietly unreadable.
+   The first version of this used contrast(.40) to crush the photograph into
+   a flat band. Every ratio passed and the lion stopped being visible, which
+   was the whole purpose of thinning the panel. Rendered against five
+   alternatives on the real image, the crush was what killed it. It is gone;
+   brightness() darkens without flattening and saturate() holds the colour.
+
+   The cost is stated rather than hidden: over the lit mane this is below AA
+   for --dim-d and for gold at rest. The brief is that the picture wins while
+   you are looking and the panel goes solid when you read it, so gold is
+   still remapped to --gold-soft and the text carries a dark halo, which
+   helps a reader and is NOT counted as contrast anywhere.
    ========================================================================== */
 
 @media (hover: hover) and (pointer: fine) {
   @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
 
-    :root { --glass: .26; --glass-on: .93; }
+    :root { --glass: .22; --glass-on: .93; }
 
     .card, .goal, .prompt, .newscard, .special, .rate, .lede--sm {
       --gold: var(--gold-soft);
       background-color: rgba(11, 15, 18, var(--glass));
-      -webkit-backdrop-filter: blur(14px) contrast(.40) brightness(.40) saturate(1.45);
-              backdrop-filter: blur(14px) contrast(.40) brightness(.40) saturate(1.45);
+      -webkit-backdrop-filter: blur(5px) brightness(.62) saturate(1.15);
+              backdrop-filter: blur(5px) brightness(.62) saturate(1.15);
       transition: background-color .17s ease, border-color .17s ease;
+    }
+    .card *, .goal *, .prompt *, .newscard *, .special *, .rate *, .lede--sm * {
+      text-shadow: 0 0 5px rgba(6, 9, 12, .95), 0 0 12px rgba(6, 9, 12, .8);
     }
 
     /* The offer and the prompt keep their gradients, so they are re-declared
@@ -957,9 +966,16 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
       --gold: #B49243;
       background-color: rgba(11, 15, 18, var(--glass-on));
       background-image: none;
-      -webkit-backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1.25);
-              backdrop-filter: blur(14px) contrast(1) brightness(1) saturate(1.25);
+      -webkit-backdrop-filter: blur(5px) brightness(1) saturate(1.25);
+              backdrop-filter: blur(5px) brightness(1) saturate(1.25);
     }
+    .card:hover *, .card:focus-within *,
+    .goal:hover *, .goal:focus-within *,
+    .prompt:hover *, .prompt:focus-within *,
+    .newscard:hover *, .newscard:focus-within *,
+    .special:hover *, .special:focus-within *,
+    .rate:hover *, .rate:focus-within *,
+    .lede--sm:hover *, .lede--sm:focus-within * { text-shadow: none; }
 
     /* A sheet is over its own scrim. Nothing behind it to reveal. */
     .sheet__panel { background-color: var(--panel-d); }
