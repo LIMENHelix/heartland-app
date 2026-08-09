@@ -182,6 +182,21 @@ async function requirePatient(req, res) {
     send(res, 403, { error: "This account is not active. Please call the clinic." });
     return null;
   }
+  /* A SETUP LINK IS NOT A CREDENTIAL, AND UNTIL THIS CHECK EXISTED IT WAS.
+     Enrolment exchanges the link for a durable device token, which is the
+     right shape, but nothing ever asked the man to choose a password: whoever
+     opened the link was holding a permanent key to another man's medical
+     record. A forwarded text, a shared phone, a browser left signed in on a
+     borrowed laptop, all of it walked straight in.
+
+     So possession of a token is not enough. An account with no password set,
+     or one still carrying a temporary password the clinic read out, reaches
+     /status and /password and nothing else. Both of those routes go through
+     patientFromToken and deliberately not through here. */
+  if (!row.pass_hash || Number(row.must_change_password) === 1) {
+    send(res, 403, { error: "password_required", passwordRequired: true });
+    return null;
+  }
   return row;
 }
 
@@ -1706,10 +1721,17 @@ const routes = {
     const deviceToken = crypto.randomBytes(32).toString("base64url");
     await db.q(`INSERT INTO patient_tokens (token, patient_id, created_at, last_used_at)
                 VALUES ($1,$2,$3,$4)`, [deviceToken, row.patient_id, now, now]);
-    await db.q(`UPDATE patients SET enrolled_at = COALESCE(enrolled_at, $1), last_seen_at = $2
-                WHERE id = $3`, [now, now, row.patient_id]);
-    const p = await db.one("SELECT first_name FROM patients WHERE id = $1", [row.patient_id]);
-    send(res, 200, { token: deviceToken, firstName: p.first_name });
+    /* must_change_password, so requirePatient holds him at the password
+       screen and /api/p/password lets him set one without repeating an old
+       one he was never given. The token alone opens nothing clinical. */
+    await db.q(`UPDATE patients SET enrolled_at = COALESCE(enrolled_at, $1), last_seen_at = $2,
+                  must_change_password = 1 WHERE id = $3`, [now, now, row.patient_id]);
+    const p = await db.one("SELECT first_name, pass_hash FROM patients WHERE id = $1",
+      [row.patient_id]);
+    send(res, 200, {
+      token: deviceToken, firstName: p.first_name,
+      passwordRequired: true, hasPassword: !!p.pass_hash
+    });
   },
 
   /* Redeem the short code the coordinator read out. Same single-use rules as
@@ -1729,10 +1751,15 @@ const routes = {
     const deviceToken = crypto.randomBytes(32).toString("base64url");
     await db.q(`INSERT INTO patient_tokens (token, patient_id, created_at, last_used_at)
                 VALUES ($1,$2,$3,$4)`, [deviceToken, row.patient_id, now, now]);
-    await db.q(`UPDATE patients SET enrolled_at = COALESCE(enrolled_at, $1), last_seen_at = $2
-                WHERE id = $3`, [now, now, row.patient_id]);
-    const p = await db.one("SELECT first_name FROM patients WHERE id = $1", [row.patient_id]);
-    send(res, 200, { token: deviceToken, firstName: p.first_name });
+    /* Same rule as the link: a code read across a desk is not a password. */
+    await db.q(`UPDATE patients SET enrolled_at = COALESCE(enrolled_at, $1), last_seen_at = $2,
+                  must_change_password = 1 WHERE id = $3`, [now, now, row.patient_id]);
+    const p = await db.one("SELECT first_name, pass_hash FROM patients WHERE id = $1",
+      [row.patient_id]);
+    send(res, 200, {
+      token: deviceToken, firstName: p.first_name,
+      passwordRequired: true, hasPassword: !!p.pass_hash
+    });
   },
 
   "GET /api/p/home": async function (req, res) {
@@ -2154,6 +2181,10 @@ const routes = {
       firstName: row.first_name,
       status: row.account_status || "active",
       mustChangePassword: Number(row.must_change_password) === 1,
+      /* The client holds him at the password screen on this, so it has to
+         mean the same thing requirePatient means by it. */
+      passwordRequired: !row.pass_hash || Number(row.must_change_password) === 1,
+      hasPassword: !!row.pass_hash,
       textLine: db.TEXT_LINE
     });
   },
@@ -2164,8 +2195,15 @@ const routes = {
     const b = await readBody(req);
     const next = String(b.next || "");
     /* A man on a temporary password the clinic read to him is allowed to
-       replace it without repeating it back. Everyone else proves the old one. */
-    if (Number(row.must_change_password) !== 1) {
+       replace it without repeating it back, and so is one who has just come
+       in off a setup link and has no password at all. Everyone else proves
+       the old one.
+
+       The `!row.pass_hash` arm is not redundant with the flag: verifyPassword
+       against a NULL hash is not a check anyone should be relying on, and a
+       row that reached here without the flag set would otherwise be asked to
+       prove a password that does not exist and could never get past it. */
+    if (Number(row.must_change_password) !== 1 && row.pass_hash) {
       if (!db.verifyPassword(String(b.current || ""), row.pass_hash, row.pass_salt)) {
         return send(res, 403, { error: "That is not your current password." });
       }

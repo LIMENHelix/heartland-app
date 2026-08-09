@@ -48,9 +48,23 @@ function callHref(p) {
     (p.phone ? "tel:" + dial(p.phone) : null);
 }
 
-function mailto(email) {
-  return "mailto:" + encodeURIComponent(email) +
-         "?subject=" + encodeURIComponent("Heartland Men's Health");
+/* The body is the point of this, not an extra.
+
+   This used to build subject-only, so "Email" opened the mail app with an
+   empty message and the coordinator had to know what to write and where to
+   find the link. The setup modal even said "Text or email it" while offering
+   no email button at all: the text went out with the link in it and the email
+   went out blank.
+
+   The address is NOT encodeURIComponent'd. That turns @ into %40, which most
+   clients forgive and some do not, and it was never doing anything useful:
+   an address that needs escaping is not an address. Only the subject and body
+   are encoded, which is what the scheme actually asks for. */
+function mailto(email, subject, body) {
+  var url = "mailto:" + String(email || "").trim() +
+            "?subject=" + encodeURIComponent(subject || "Heartland Men's Health");
+  if (body) url += "&body=" + encodeURIComponent(body);
+  return url;
 }
 
 function isAdmin() { return ME && ME.role === "admin"; }
@@ -1638,24 +1652,40 @@ async function setupModal(patientId) {
 
   /* The message ready to go, so nobody has to compose one and nobody leaves
      out the Add to Home Screen step that push notifications depend on. */
+  /* This text has to match what the app actually does. It used to promise
+     "no password needed", which was true and was the security hole: the link
+     was the whole credential. The app now asks him to choose a password on
+     the way in, so the message says so. A man told there is no password who
+     is then asked for one assumes something is broken and calls the clinic. */
   const sms =
     "Hi " + name + ", it's Heartland Men's Health. Here's your app:\n\n" + url +
-    "\n\nOpen that on your phone and you're in, no password needed. " +
+    "\n\nOpen that on your phone, choose a password, and you're in. " +
     "Then tap Share and Add to Home Screen so we can send you reminders.";
 
   let h = '<div class="setupsteps">';
 
   h += '<div class="setupstep"><span class="setupstep__n">1</span><div>' +
     "<p class=\"setupstep__t\">Send him this</p>" +
-    '<p class="setupstep__b">Text or email it. One tap and he is in \u2014 no password, nothing to remember.</p>' +
+    '<p class="setupstep__b">Text or email it. He taps it, picks a password, and he is in.</p>' +
     '<div class="sendbox" id="sendBox">' + esc(sms) + "</div>" +
     '<div class="grid2" style="margin-top:10px">' +
       (p.phone
         ? '<a class="btn btn--primary" href="sms:' + esc(dial(p.phone)) +
           "?&body=" + encodeURIComponent(sms) + '">Text ' + esc(name) + "</a>"
         : '<button class="btn btn--outline" disabled>No phone on file</button>') +
-      '<button class="btn btn--outline" id="suCopyMsg">Copy the message</button>' +
-    "</div></div></div>";
+      /* The email half of "Text or email it", which the copy promised and the
+         code never had. Same message, same link, so the two channels cannot
+         drift. Disabled rather than hidden when there is no address, so it is
+         obvious WHY it cannot be used. */
+      (p.email
+        ? '<a class="btn btn--outline" href="' +
+          esc(mailto(p.email, "Your Heartland Men's Health app", sms)) +
+          '">Email ' + esc(name) + "</a>"
+        : '<button class="btn btn--outline" disabled>No email on file</button>') +
+    "</div>" +
+    '<button class="btn btn--outline btn--full" id="suCopyMsg" style="margin-top:8px">' +
+      "Copy the message</button>" +
+    "</div></div>";
 
   h += '<div class="setupstep"><span class="setupstep__n">2</span><div>' +
     "<p class=\"setupstep__t\">Or do it with him in the room</p>" +
@@ -1672,8 +1702,11 @@ async function setupModal(patientId) {
 
   h += "</div>";
 
-  h += '<div class="setupnote"><p><strong>He never signs in again.</strong> The app stays open on his phone from then on \u2014 no password, no code. ' +
-    "If he changes phones or clears his browser, come back here and send him a new code.</p>" +
+  h += '<div class="setupnote"><p><strong>He chooses a password once, then stays signed in.</strong> ' +
+    "The link gets him to that screen and no further, so a forwarded text is not a way into his record. " +
+    "After that the app stays open on his phone. " +
+    "If he changes phones or clears his browser, he signs in with that password, " +
+    "or come back here and send him a new code.</p>" +
     "<p>This link and code both work once, and expire " + esc(expiryWords(r.expiresAt)) + ".</p></div>";
 
   h += '<button class="btn btn--outline btn--full" id="suCopyLink" style="margin-top:6px">Copy just the link</button>';

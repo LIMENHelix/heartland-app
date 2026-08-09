@@ -926,12 +926,14 @@ body {
    plainly below rather than engineered away.
 
    THE PANEL FAILS AA AT REST, EVERYWHERE, AND THAT IS THE INSTRUCTION.
-   Measured, not estimated: 18 of 18 text runs fail, the worst at 1.51:1 on
-   rgb(74). This is not "a little low". Until a panel is hovered its text is
-   grey on grey, and the operator chose that with the number in front of him,
-   twice: the photograph wins while you are looking at the page, and the
-   panel becomes a panel when you go to read one. Hover is solid at .97,
-   which puts ink near 17:1, so reading is done there.
+   Measured at --glass .08, not estimated: 18 of 18 text runs fail, the worst
+   at 1.06:1 on rgb(27). 1.06:1 is not "low contrast", it is invisible: over
+   the dark half of the photograph the resting text cannot be read at all,
+   only located. The operator asked for this three times, each time with the
+   measurement in front of him, and it is the correct reading of the brief:
+   the panel is a window while you are looking at the page and becomes a card
+   when you go to read one. Hover is solid at .97, which puts ink near 17:1,
+   so reading is done there and only there.
 
    Do not quietly "fix" this by raising --glass. It is one number and the
    effect is close to linear, so it is trivial to change if the decision is
@@ -959,7 +961,7 @@ body {
 @media (hover: hover) and (pointer: fine) {
   @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
 
-    :root { --glass: .28; --glass-on: .97; }
+    :root { --glass: .08; --glass-on: .97; }
 
     /* .notice and .dangerbox are NOT in this list. An alert is supposed to be
        the loudest thing on the screen; making a warning see-through is the
@@ -968,18 +970,22 @@ body {
     .card:not(.card--off), .stat, .pcard, .waitrow, .matchrow {
       --muted: var(--navy);
       background-color: rgba(255, 255, 255, var(--glass));
-      -webkit-backdrop-filter: blur(5px) brightness(1.28) saturate(1.12);
-              backdrop-filter: blur(5px) brightness(1.28) saturate(1.12);
+      -webkit-backdrop-filter: blur(2px) brightness(1.06) saturate(1.04);
+              backdrop-filter: blur(2px) brightness(1.06) saturate(1.04);
       transition: background-color .17s var(--ease), border-color .17s var(--ease),
                   box-shadow .17s var(--ease);
     }
 
-    /* A soft white halo, so dark type stays followable where the picture goes
-       dark. It is a legibility aid and nothing more: it does not change the
-       measured ratio, and no number reported anywhere assumes it does. It is
-       dropped on hover, where the surface is solid and it would only smear. */
+    /* At .08 the panel is barely a tint and the halo is doing nearly all of
+       the legibility work, so it is heavier than it looks like it should be.
+       It is still only a legibility aid: it does not change the measured
+       ratio, and no number reported anywhere assumes it does. The measuring
+       script strips text-shadow before it samples, which is why the figures
+       stay honest. Dropped on hover, where the surface is solid and it would
+       only smear. */
     .card:not(.card--off) *, .stat *, .pcard *, .waitrow *, .matchrow * {
-      text-shadow: 0 0 5px rgba(255, 255, 255, .92), 0 0 11px rgba(255, 255, 255, .7);
+      text-shadow: 0 0 4px rgba(255, 255, 255, .98), 0 0 9px rgba(255, 255, 255, .92),
+                   0 0 17px rgba(255, 255, 255, .75);
     }
 
     /* Under the pointer it becomes an ordinary card again: full white, no

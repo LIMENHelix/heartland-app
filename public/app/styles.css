@@ -1002,23 +1002,64 @@ url("img/backdrop.webp");
 }
 
 /* Everything the patient touches sits above it. The tab bar and header keep
-   their own solid surfaces so navigation is never read against a photograph. */
-main, .topbar, .tabbar, .sidenav, .sheet, .gate { position: relative; z-index: 1; }
+   their own solid surfaces so navigation is never read against a photograph.
+
+   .sheet IS DELIBERATELY NOT IN THIS LIST, and this is the whole of a bug
+   that froze the app. It was, and `position: relative` here quietly beat the
+   `position: fixed` the sheet is declared with further up the file: same
+   specificity, later in the file, so this won.
+
+   A sheet that is not fixed renders in document flow, below the fold, where
+   nothing about it is visible. openSheet() also sets
+   body.style.overflow = "hidden", so the page could not be scrolled down to
+   it, and the only close button was inside the part you could not see. Tap
+   the Vitality tier or Ask your coordinator and the app appeared to do
+   nothing and then freeze, with a reload the only way out.
+
+   Nothing threw and nothing 404'd, because nothing was wrong with the
+   JavaScript. If .sheet ever needs a stacking rule again, give it one that
+   keeps position: fixed. */
+main, .topbar, .tabbar, .sidenav, .gate { position: relative; z-index: 1; }
 .topbar, .tabbar, .sidenav { z-index: 3; }
-.sheet { z-index: 40; }
+/* Above the tab bar and the header, which is why it was 60 to begin with. */
+.sheet { z-index: 60; }
 
 /* The eyebrow labels above each screen are the only text that sits on raw
-   photograph rather than on a card. Grey is the first pair to fail there. */
-.screen > .eyebrow { color: var(--navy); }
+   photograph rather than on a card. Navy was right while the backdrop was the
+   pre-lightened lion; it is not any more. The rule that replaces it is at the
+   bottom of this file, with the reason. */
 
 @media print { .backdrop { display: none; } }
 
 
 /* The photograph is dark now, so the page colour behind it is too and the few
    pieces of text that sit outside a card wear cream. Everything with real
-   content in it is on an opaque card and is untouched. */
+   content in it is on an opaque card and is untouched.
+
+   THE SELECTOR DEPTH IS THE WHOLE BUG THIS ONCE HAD, so read it before
+   editing. Every screen title lives at
+
+       main > section.screen > .eyebrow
+       main > section.screen > .h1
+
+   and this rule used to say `main > .eyebrow`, a DIRECT child, which matches
+   none of them. So when the backdrop changed from the pre-lightened lion to
+   the dark one, nothing here moved: the titles stayed navy, on near-black, at
+   about 1.1:1. Measured live, they computed to rgb(33,49,59) with
+   text-shadow: none. Messages, Your record, Learn and Clinic all had an
+   invisible heading, on every screen a patient actually opens. Home was the
+   only one spared, because it draws its own hero instead.
+
+   It read as the app being broken rather than as a styling fault, which is
+   why it survived: nothing threw, nothing 404'd, no test failed. A screenshot
+   of the rendered page is what found it.
+
+   Both depths are listed now. If a screen is ever nested one level deeper,
+   this breaks again silently, so the check is: does every screen title still
+   compute to cream with a shadow? */
 body { background: #0A0806; }
-main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty {
+main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty,
+.screen > .eyebrow, .screen > .h1, .screen > .sub, .screen > p, .screen > .empty {
   color: var(--cream);
   text-shadow: 0 1px 14px rgba(0, 0, 0, .85), 0 1px 3px rgba(0, 0, 0, .7);
 }
@@ -1039,7 +1080,8 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty {
    - --muted grey needs rgb(236) to clear 4.5:1 and cannot get it here, so it
      is remapped to navy inside a glass panel.
    - AT REST THIS FAILS AA, and that is the instruction, chosen with the
-     measurement in hand. Measured here: 9 of 9 text runs fail, worst 1.64:1.
+     measurement in hand. Measured at --glass .08: 9 of 9 runs fail, worst
+     1.26:1, which is located-not-read over the dark half of the picture.
      The photograph wins while you are looking; reading happens in the hover
      state, which is solid at .97 and puts ink near 17:1. The text-shadow is
      a readability aid for a real reader and is not counted as contrast: the
@@ -1054,7 +1096,7 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty {
 @media (hover: hover) and (pointer: fine) {
   @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
 
-    :root { --glass: .28; --glass-on: .97; }
+    :root { --glass: .08; --glass-on: .97; }
 
     /* .notice, .notice--alert and .check are deliberately absent. The first
        two are how this app says something is wrong, and .check is the symptom
@@ -1063,13 +1105,14 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty {
     .card, .study, .cite {
       --muted: var(--navy);
       background-color: rgba(255, 255, 255, var(--glass));
-      -webkit-backdrop-filter: blur(5px) brightness(1.28) saturate(1.12);
-              backdrop-filter: blur(5px) brightness(1.28) saturate(1.12);
+      -webkit-backdrop-filter: blur(2px) brightness(1.06) saturate(1.04);
+              backdrop-filter: blur(2px) brightness(1.06) saturate(1.04);
       transition: background-color .17s var(--ease), border-color .17s var(--ease),
                   box-shadow .17s var(--ease);
     }
     .card *, .study *, .cite * {
-      text-shadow: 0 0 5px rgba(255, 255, 255, .92), 0 0 11px rgba(255, 255, 255, .7);
+      text-shadow: 0 0 4px rgba(255, 255, 255, .98), 0 0 9px rgba(255, 255, 255, .92),
+                   0 0 17px rgba(255, 255, 255, .75);
     }
 
     .card:hover, .card:focus-within,

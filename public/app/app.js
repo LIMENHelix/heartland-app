@@ -142,6 +142,14 @@ async function api(path, body) {
   });
   var data = await res.json().catch(function () { return {}; });
   if (res.status === 401) { signOut(true); throw new Error("Not enrolled."); }
+  /* The server refuses everything clinical until a password exists. If any
+     call comes back saying so, go to the password screen rather than showing
+     him an error he cannot act on. Never from /password itself, or setting
+     one would bounce off its own gate. */
+  if (res.status === 403 && data.passwordRequired && path !== "/password") {
+    showSetPassword(null, false);
+    throw new Error("Choose a password first.");
+  }
   if (!res.ok) throw new Error(data.error || "Could not reach the clinic. Try again in a moment.");
   return data;
 }
@@ -310,6 +318,43 @@ function showPending(name) {
   );
 }
 
+/* A setup link gets him in the door and no further. Nothing clinical loads
+   until he has chosen a password of his own, because until he does, the link
+   in his texts IS the key to his record and anyone holding it is him. */
+function showSetPassword(name, hasPassword) {
+  gate(
+    '<p class="eyebrow">Heartland Men\'s Health</p>' +
+    '<h1 class="display">Choose a password' + (name ? ",<br>" + esc(name) : "") + "</h1>" +
+    '<p class="lede">' + (hasPassword
+      ? "Your temporary password needs replacing before you go in."
+      : "Your setup link got you this far. Pick a password so it is your account " +
+        "and not just whoever has the link.") + "</p>" +
+    '<label class="field"><span class="field__l">New password</span>' +
+      '<input class="input" id="pwNew" type="password" autocomplete="new-password" ' +
+      'minlength="8" placeholder="At least 8 characters"></label>' +
+    '<label class="field"><span class="field__l">Type it again</span>' +
+      '<input class="input" id="pwAgain" type="password" autocomplete="new-password"></label>' +
+    '<p class="gateerr" id="pwErr" hidden></p>' +
+    '<button class="btn btn--primary" data-act="set-password">' + ARROW + "Save and go in</button>" +
+    '<button class="gatelink" data-act="signout">Sign out</button>'
+  );
+}
+
+async function submitSetPassword() {
+  var err = $("#pwErr");
+  var next = ($("#pwNew") || {}).value || "";
+  var again = ($("#pwAgain") || {}).value || "";
+  if (err) err.hidden = true;
+  function bad(m) { if (err) { err.textContent = m; err.hidden = false; } }
+  if (next.length < 8) return bad("Use at least 8 characters.");
+  if (next !== again) return bad("Those two do not match.");
+  try {
+    await api("/password", { next: next });
+    var st = await api("/status");
+    await start(st.firstName);
+  } catch (e) { bad(e.message); }
+}
+
 async function checkPending() {
   try {
     var r = await api("/status");
@@ -339,6 +384,7 @@ async function redeemCode() {
     }
     token = data.token;
     localStorage.setItem(TOKEN_KEY, token);
+    if (data.passwordRequired) return showSetPassword(data.firstName, data.hasPassword);
     await start(data.firstName);
   } catch (e) {
     if (err) { err.textContent = "Could not reach the clinic. Check your signal."; err.hidden = false; }
@@ -365,6 +411,7 @@ async function tryEnroll(t) {
     token = data.token;
     localStorage.setItem(TOKEN_KEY, token);
     history.replaceState({}, "", location.pathname);
+    if (data.passwordRequired) return showSetPassword(data.firstName, data.hasPassword);
     await start(data.firstName);
   } catch (e) {
     gate('<p class="eyebrow">No connection</p><h1 class="display">Could not reach the clinic</h1>' +
@@ -1448,6 +1495,7 @@ document.addEventListener("click", function (e) {
   if (a === "do-login") return doLogin();
   if (a === "do-register") return doRegister();
   if (a === "pending-check") return checkPending();
+  if (a === "set-password") return submitSetPassword();
   if (a === "vitality") return sheetVitality();
   if (a === "study-search") return runStudySearch();
   if (a === "push-on") return enablePush();
@@ -1519,6 +1567,10 @@ async function boot() {
   try {
     var st = await api("/status");
     if (st.status === "pending") return showPending(st.firstName);
+    /* Catches everyone already enrolled before this gate existed, not just
+       new links: they hold a working token and have never set a password, so
+       they land here once and then never again. */
+    if (st.passwordRequired) return showSetPassword(st.firstName, st.hasPassword);
     if (st.status === "rejected") { return gate(
       '<p class="eyebrow">Heartland Men\'s Health</p><h1 class="display">Call the clinic</h1>' +
       '<p class="lede">We could not confirm this account. Text us on ' + esc(TEXT_LINE) + '.</p>' +

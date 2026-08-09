@@ -933,27 +933,28 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 @media (hover: hover) and (pointer: fine) {
   @supports ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
 
-    :root { --glass: .22; --glass-on: .93; }
+    :root { --glass: .08; --glass-on: .93; }
 
     .card, .goal, .prompt, .newscard, .special, .rate, .lede--sm {
       --gold: var(--gold-soft);
       background-color: rgba(11, 15, 18, var(--glass));
-      -webkit-backdrop-filter: blur(5px) brightness(.62) saturate(1.15);
-              backdrop-filter: blur(5px) brightness(.62) saturate(1.15);
+      -webkit-backdrop-filter: blur(2px) brightness(.85) saturate(1.06);
+              backdrop-filter: blur(2px) brightness(.85) saturate(1.06);
       transition: background-color .17s ease, border-color .17s ease;
     }
     .card *, .goal *, .prompt *, .newscard *, .special *, .rate *, .lede--sm * {
-      text-shadow: 0 0 5px rgba(6, 9, 12, .95), 0 0 12px rgba(6, 9, 12, .8);
+      text-shadow: 0 0 4px rgba(6, 9, 12, .98), 0 0 9px rgba(6, 9, 12, .92),
+                   0 0 17px rgba(6, 9, 12, .75);
     }
 
     /* The offer and the prompt keep their gradients, so they are re-declared
        rather than inherited: a background-image left in place would paint
        over the alpha and the panel would not thin at all. */
     .special {
-      background-image: linear-gradient(180deg, rgba(29,38,46,.34) 0%, rgba(20,27,33,.20) 100%);
+      background-image: linear-gradient(180deg, rgba(29,38,46,.13) 0%, rgba(20,27,33,.07) 100%);
     }
     .prompt {
-      background-image: linear-gradient(180deg, rgba(29,38,46,.32) 0%, rgba(20,27,33,.18) 100%);
+      background-image: linear-gradient(180deg, rgba(29,38,46,.12) 0%, rgba(20,27,33,.06) 100%);
     }
 
     .card:hover, .card:focus-within,
