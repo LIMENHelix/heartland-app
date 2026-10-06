@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Heartland coordinator console.
+   Rejuv coordinator console.
    Views: today's list (retention board), patients, compose, articles, sent.
    ========================================================================== */
 (function () {
@@ -62,7 +62,7 @@ function callHref(p) {
    are encoded, which is what the scheme actually asks for. */
 function mailto(email, subject, body) {
   var url = "mailto:" + String(email || "").trim() +
-            "?subject=" + encodeURIComponent(subject || "Heartland Men's Health");
+            "?subject=" + encodeURIComponent(subject || "Rejuv Men's Health & Wellness");
   if (body) url += "&body=" + encodeURIComponent(body);
   return url;
 }
@@ -1096,7 +1096,7 @@ function articleModal(id) {
 /* ==========================================================================
    The free app.
 
-   People who installed Heartland Daily. They are not patients and nothing here
+   People who installed Rejuv Daily. They are not patients and nothing here
    is clinical: an install is an anonymous device, and a name exists only
    because somebody asked to be called. Which is why this view is about leads
    and reach rather than records.
@@ -1104,7 +1104,7 @@ function articleModal(id) {
 
 function viewDaily() {
   var c = DAILY.counts || {};
-  var h = '<div class="head"><div><p class="eyebrow">Heartland Daily</p>' +
+  var h = '<div class="head"><div><p class="eyebrow">Rejuv Daily</p>' +
           '<h1 class="h1">The free app</h1></div>' +
           '<button class="btn btn--primary btn--sm" data-act="special-new">Write a special</button></div>';
 
@@ -1171,7 +1171,7 @@ function viewDaily() {
        '<button class="btn btn--outline btn--sm" data-act="news-new">Write a piece</button></div>';
   if (!DAILY.news.length) {
     h += '<div class="card"><div class="empty">Nothing written. Until there is, the ' +
-         '<strong>From Heartland</strong> nudge stays silent rather than firing with a ' +
+         '<strong>From Rejuv</strong> nudge stays silent rather than firing with a ' +
          "placeholder in it. Write one piece per topic and it starts working.</div></div>";
   }
   DAILY.news.forEach(function (nw) {
@@ -1658,7 +1658,7 @@ async function setupModal(patientId) {
      the way in, so the message says so. A man told there is no password who
      is then asked for one assumes something is broken and calls the clinic. */
   const sms =
-    "Hi " + name + ", it's Heartland Men's Health. Here's your app:\n\n" + url +
+    "Hi " + name + ", it's Rejuv Men's Health & Wellness. Here's your app:\n\n" + url +
     "\n\nOpen that on your phone, choose a password, and you're in. " +
     "Then tap Share and Add to Home Screen so we can send you reminders.";
 
@@ -1679,7 +1679,7 @@ async function setupModal(patientId) {
          obvious WHY it cannot be used. */
       (p.email
         ? '<a class="btn btn--outline" href="' +
-          esc(mailto(p.email, "Your Heartland Men's Health app", sms)) +
+          esc(mailto(p.email, "Your Rejuv Men's Health & Wellness app", sms)) +
           '">Email ' + esc(name) + "</a>"
         : '<button class="btn btn--outline" disabled>No email on file</button>') +
     "</div>" +
@@ -2063,7 +2063,7 @@ function showPassword(name, email, pw, isNew) {
   h += '<button class="btn btn--primary btn--full" id="pwCopy" style="margin-top:10px">Copy all three</button>';
   openModal("Their sign-in details", h, function (root) {
     $("#pwCopy", root).addEventListener("click", function () {
-      var text = "Heartland console\n" + location.origin + "/console/\n" +
+      var text = "Rejuv console\n" + location.origin + "/console/\n" +
                  "Email: " + email + "\nPassword: " + pw;
       navigator.clipboard.writeText(text).then(function () { toast("Copied."); },
                                                function () { toast("Could not copy."); });
