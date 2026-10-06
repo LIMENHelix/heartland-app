@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Heartland — patient app
+   Rejuv — patient app
 
    Built in the language of the clinic's own presentation deck: warm paper
    ground, near-black ink, a navy header bar under a gold rule, white panels
@@ -19,18 +19,18 @@
   --data: "Bai Jamjuree", ui-monospace, "SF Mono", monospace;
 
   /* the deck's palette, verbatim */
-  --navy: #21313B;
-  --navy-2: #25495C;
-  --gold: #B49243;
-  --gold-soft: #D4B266;
-  --gold-deep: #8D6E25;
-  --rust: #C66B3D;
-  --rust-dark: #974F2B;
-  --cream: #F7F3EB;
+  --navy: #242422;
+  --navy-2: #474640;
+  --gold: #C9B8A6;
+  --gold-soft: #E2D8CE;
+  --gold-deep: #9A8774;
+  --rust: #B8A594;
+  --rust-dark: #7D6D60;
+  --cream: #F4F1EC;
   --paper: #FFFFFF;
-  --ink: #0D0D0D;
-  --muted: #6B6B6B;
-  --line: #E3DDD0;
+  --ink: #242422;
+  --muted: #706C67;
+  --line: #DDD5CC;
 
   --r: 8px;
   --r-lg: 14px;
@@ -995,7 +995,7 @@ main {
   background-image:
     linear-gradient(rgba(10, 8, 6, var(--backdrop-veil)),
                     rgba(10, 8, 6, var(--backdrop-veil))),
-url("img/backdrop.webp");
+linear-gradient(135deg,#F4F1EC,#E8E1D9);
   background-size: auto, cover;
   background-position: center, center 20%;
   background-repeat: no-repeat;
@@ -1118,7 +1118,7 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty,
     .card:hover, .card:focus-within,
     .study:hover, .study:focus-within,
     .cite:hover, .cite:focus-within {
-      --muted: #6B6B6B;
+      --muted: #706C67;
       background-color: rgba(255, 255, 255, var(--glass-on));
       -webkit-backdrop-filter: blur(5px) brightness(1) saturate(1);
               backdrop-filter: blur(5px) brightness(1) saturate(1);
@@ -1136,3 +1136,6 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty,
 @media (prefers-reduced-motion: reduce) {
   .card, .study, .cite { transition: none; }
 }
+
+/* Rejuv concept visual system */
+.rejuv-wordmark{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:500;letter-spacing:-.045em;color:#C9B8A6;font-size:22px;line-height:1}.rejuv-wordmark--lg{font-size:40px;color:#9A8774}.mark{display:none!important}
