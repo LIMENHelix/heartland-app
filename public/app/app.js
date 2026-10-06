@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Heartland — patient app.
+   Rejuv — patient app.
 
    Home / Messages / Learn / Clinic.
    The device stores only the enrolment token. Everything else comes from the
@@ -117,7 +117,7 @@ function emailCoordinator(cls) {
   var c = HOME && HOME.coordinator;
   if (!c || !c.email) return "";
   return '<a class="btn ' + (cls || "btn--outline") + '" href="mailto:' +
-    encodeURIComponent(c.email) + "?subject=" + encodeURIComponent("Heartland Men's Health") +
+    encodeURIComponent(c.email) + "?subject=" + encodeURIComponent("Rejuv Men's Health & Wellness") +
     '">' + ARROW + "Email " + esc(c.name.split(" ")[0]) + "</a>";
 }
 
@@ -171,7 +171,7 @@ function gate(html) {
 function gateWaiting(mode) {
   var creating = mode === "create";
   gate(
-    '<p class="eyebrow">Heartland Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
     '<h1 class="display">' + (creating ? "Create your<br>account" : "Sign in") + "</h1>" +
     '<div class="tabs2">' +
       '<button class="tab2' + (creating ? "" : " is-on") + '" data-act="gate-signin">Sign in</button>' +
@@ -227,7 +227,7 @@ function gateCreateFields() {
 /* Kept for the man at the desk who cannot remember which email he used. */
 function gateCode() {
   gate(
-    '<p class="eyebrow">Heartland Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
     '<h1 class="display">Enter your<br>setup code</h1>' +
     '<p class="lede">The clinic can give you a six-character code instead.</p>' +
     '<label class="field"><span class="field__l">Setup code</span>' +
@@ -305,7 +305,7 @@ async function postJSON(path, body) {
    because at this point the app does not know who he is. */
 function showPending(name) {
   gate(
-    '<p class="eyebrow">Heartland Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
     '<h1 class="display">Almost there' + (name ? ",<br>" + esc(name) : "") + "</h1>" +
     '<p class="lede">Your account is made. The clinic is confirming your details, ' +
     "usually the same day. We will let you know the moment it is done.</p>" +
@@ -323,7 +323,7 @@ function showPending(name) {
    in his texts IS the key to his record and anyone holding it is him. */
 function showSetPassword(name, hasPassword) {
   gate(
-    '<p class="eyebrow">Heartland Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
     '<h1 class="display">Choose a password' + (name ? ",<br>" + esc(name) : "") + "</h1>" +
     '<p class="lede">' + (hasPassword
       ? "Your temporary password needs replacing before you go in."
@@ -403,7 +403,7 @@ async function tryEnroll(t) {
       gate('<p class="eyebrow">That did not work</p><h1 class="display">Link not valid</h1>' +
            '<p class="lede">' + esc(data.error || "That setup link cannot be used.") + "</p>" +
            '<a class="btn btn--primary" href="sms:' + dial(TEXT_LINE) + "?&body=" +
-             encodeURIComponent("Hi, my Heartland app link did not work. Please send a new one.") +
+             encodeURIComponent("Hi, my Rejuv app link did not work. Please send a new one.") +
              '">' + ARROW + "Text us for a new link</a>" +
            '<a class="gateout" href="/console/">Clinic staff sign in &rarr;</a>');
       return;
@@ -465,7 +465,7 @@ async function enablePush() {
   try {
     if (!pushSupported()) {
       return toast(isIOS() && !isStandalone()
-        ? "Add Heartland to your Home Screen first"
+        ? "Add Rejuv to your Home Screen first"
         : "This browser cannot do notifications");
     }
     var perm = await Notification.requestPermission();
@@ -704,7 +704,7 @@ async function paintPushPrompt() {
     box.innerHTML = sechead("One more step") +
       '<div class="notice">' +
       '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 3v9m0 0 3.2-3.2M10 12 6.8 8.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14.5v1.2A1.3 1.3 0 0 0 5.3 17h9.4a1.3 1.3 0 0 0 1.3-1.3v-1.2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
-      "<p><strong>Add Heartland to your Home Screen</strong> so we can reach you without texting. Tap Share, then Add to Home Screen.</p></div>";
+      "<p><strong>Add Rejuv to your Home Screen</strong> so we can reach you without texting. Tap Share, then Add to Home Screen.</p></div>";
     return;
   }
   if (st.state === "blocked") {
@@ -813,7 +813,7 @@ function sheetVitality() {
 
 function sheetAsk() {
   openSheet("Ask your coordinator",
-    '<p class="small muted" style="margin:0 0 20px">This goes to your patient coordinator at Heartland, not to a group inbox. ' +
+    '<p class="small muted" style="margin:0 0 20px">This goes to your patient coordinator at Rejuv, not to a group inbox. ' +
     "They answer during clinic hours, Monday to Friday.</p>" +
     '<label class="field"><span class="field__l">Your question</span>' +
     '<textarea class="textarea" id="askBody" placeholder="Ask about your labs, your medication, your plan, or anything you want explained."></textarea></label>' +
@@ -985,7 +985,7 @@ function renderClinic() {
     "For chest pain, trouble breathing, stroke symptoms, a severe allergic reaction or thoughts of suicide, call 911.</p>" +
     '<p class="finetext" style="margin-top:12px">Featured therapies are compounded and have not been approved or evaluated ' +
     "for safety, effectiveness or quality by the FDA. They are dispensed by state-licensed compounding pharmacies.</p>" +
-    '<p class="finetext" style="margin-top:12px">Heartland Men\'s Health is a Promeniq Restorative Health partner practice.</p></div>';
+    '<p class="finetext" style="margin-top:12px">Rejuv Men\'s Health is a Promeniq Restorative Health partner practice.</p></div>';
 
   $("#clinicBody").innerHTML = h;
   paintSettings();
@@ -1011,7 +1011,7 @@ async function paintSettings() {
   }
   h += '<p class="h3" style="margin-top:26px">This device</p>' +
        '<p class="small muted" style="margin:0 0 16px">Removing the app from this phone does not affect your record at the clinic.</p>' +
-       '<button class="btn btn--ghost btn--sm" data-act="signout">Remove Heartland from this phone</button>';
+       '<button class="btn btn--ghost btn--sm" data-act="signout">Remove Rejuv from this phone</button>';
   box.innerHTML = h;
 }
 
@@ -1248,7 +1248,7 @@ function cardHelp() {
     '<p class="h3">If you need help now</p>' +
     helpRow(YOU.help.emergency.label, YOU.help.emergency.value, "Chest pain, trouble breathing, sudden weakness") +
     helpRow(YOU.help.crisis.label, YOU.help.crisis.value, YOU.help.crisis.note) +
-    helpRow(YOU.help.priapism.label, YOU.help.priapism.value, "Heartland's line, any hour") +
+    helpRow(YOU.help.priapism.label, YOU.help.priapism.value, "Rejuv's line, any hour") +
     "</div>";
 }
 
@@ -1391,7 +1391,7 @@ function actNow(list, told) {
   h += '<div class="urgent__nums">' +
     helpRow("Emergency", "911", "") +
     helpRow("Suicide and Crisis Lifeline", "988", "Call or text, any hour") +
-    helpRow("Heartland urgent line", EMERGENCY, "") +
+    helpRow("Rejuv urgent line", EMERGENCY, "") +
     "</div>";
   h += '<p class="muted">' + (told
     ? "Your coordinator has been told as well. That is not a substitute for the numbers above."
@@ -1501,7 +1501,7 @@ document.addEventListener("click", function (e) {
   if (a === "push-on") return enablePush();
   if (a === "push-off") return disablePush();
   if (a === "signout") {
-    if (confirm("Remove Heartland from this phone? You will need a new setup link from the clinic to use it again.")) signOut();
+    if (confirm("Remove Rejuv from this phone? You will need a new setup link from the clinic to use it again.")) signOut();
     return;
   }
 });
@@ -1572,7 +1572,7 @@ async function boot() {
        they land here once and then never again. */
     if (st.passwordRequired) return showSetPassword(st.firstName, st.hasPassword);
     if (st.status === "rejected") { return gate(
-      '<p class="eyebrow">Heartland Men\'s Health</p><h1 class="display">Call the clinic</h1>' +
+      '<p class="eyebrow">Rejuv Men\'s Health</p><h1 class="display">Call the clinic</h1>' +
       '<p class="lede">We could not confirm this account. Text us on ' + esc(TEXT_LINE) + '.</p>' +
       '<a class="btn btn--primary" href="sms:' + dial(TEXT_LINE) + '">' + ARROW +
       "Text the clinic</a>" +
