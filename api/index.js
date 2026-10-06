@@ -396,13 +396,13 @@ const routes = {
   "POST /api/admin/login": async function (req, res) {
     const b = await readBody(req);
     const loginName = String(b.email || "").toLowerCase().trim();
-    const demoLogin = loginName === "sample" && String(b.password || "") === "rejuv";
+    const demoLogin = loginName === "men@trt.com" && String(b.password || "") === "sample";
     const row = demoLogin
       ? await db.one("SELECT * FROM coordinators WHERE active = 1 ORDER BY CASE WHEN role = 'admin' THEN 0 ELSE 1 END, id LIMIT 1")
       : await db.one("SELECT * FROM coordinators WHERE email = $1 AND active = 1", [loginName]);
     // Same message either way: do not confirm which accounts exist.
     if (!row || (!demoLogin && !db.verifyPassword(String(b.password || ""), row.pass_hash, row.pass_salt))) {
-      return send(res, 401, { error: "That username and password do not match." });
+      return send(res, 401, { error: "That email and password do not match." });
     }
     const token = await db.createSession(row.id);
     send(res, 200, { ok: true, name: row.name, role: row.role },
