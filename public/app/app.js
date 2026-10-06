@@ -51,7 +51,7 @@ var EMERGENCY = "844-981-4996";
 var TEXT_LINE = "913-431-2757";   /* clinic text line, everyone sees it */
 var PORTAL = "https://www.rejuv-kc.com/mens-health";
 var CLINICS = [
-  { name: "Men's Health & Wellness", addr: "645 State Rte 92", city: "Kearney, MO 64060" }
+  { name: "Rejuv Men's Health & Wellness", addr: "645 State Rte 92", city: "Kearney, MO 64060" }
 ];
 
 /* ==========================================================================
@@ -169,7 +169,7 @@ function gate(html) {
 function gateWaiting(mode) {
   var creating = mode === "create";
   gate(
-    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health & Wellness</p>' +
     '<h1 class="display">' + (creating ? "Create your<br>account" : "Sign in") + "</h1>" +
     '<div class="tabs2">' +
       '<button class="tab2' + (creating ? "" : " is-on") + '" data-act="gate-signin">Sign in</button>' +
@@ -225,7 +225,7 @@ function gateCreateFields() {
 /* Kept for the man at the desk who cannot remember which email he used. */
 function gateCode() {
   gate(
-    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health & Wellness</p>' +
     '<h1 class="display">Enter your<br>setup code</h1>' +
     '<p class="lede">The clinic can give you a six-character code instead.</p>' +
     '<label class="field"><span class="field__l">Setup code</span>' +
@@ -303,7 +303,7 @@ async function postJSON(path, body) {
    because at this point the app does not know who he is. */
 function showPending(name) {
   gate(
-    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health & Wellness</p>' +
     '<h1 class="display">Almost there' + (name ? ",<br>" + esc(name) : "") + "</h1>" +
     '<p class="lede">Your account is made. The clinic is confirming your details, ' +
     "usually the same day. We will let you know the moment it is done.</p>" +
@@ -321,7 +321,7 @@ function showPending(name) {
    in his texts IS the key to his record and anyone holding it is him. */
 function showSetPassword(name, hasPassword) {
   gate(
-    '<p class="eyebrow">Rejuv Men\'s Health</p>' +
+    '<p class="eyebrow">Rejuv Men\'s Health & Wellness</p>' +
     '<h1 class="display">Choose a password' + (name ? ",<br>" + esc(name) : "") + "</h1>" +
     '<p class="lede">' + (hasPassword
       ? "Your temporary password needs replacing before you go in."
@@ -523,11 +523,14 @@ function renderHome() {
   var hour = new Date().getHours();
   var greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  /* Full-width welcome hero. */
+  /* The photograph lives here. Everything below it sits on flat navy. */
   h += '<header class="hero2">' +
     '<p class="hero2__eyebrow">' + esc(greet) + "</p>" +
     '<h1 class="hero2__name">' + esc(HOME.firstName) + "</h1>" +
-    '<p class="hero2__meta">Rejuv Men\'s Health &amp; Wellness</p>' +
+    (HOME.vitality
+      ? '<p class="hero2__meta"><span class="hero2__badge">' + esc(HOME.vitality.label) +
+        " &middot; " + HOME.vitality.discount + "% off</span></p>"
+      : "") +
     "</header>";
 
   /* --- labs: the thing they most need to know --- */
@@ -889,7 +892,7 @@ function renderClinic() {
   h += callCoordinator(null, "btn--outline");
   h += emailCoordinator("btn--outline");
   h += '<a class="btn btn--outline" href="sms:' + dial(TEXT_LINE) + '">Text the clinic on ' + TEXT_LINE + "</a>";
-  h += '<a class="btn btn--outline" href="' + PORTAL + '" target="_blank" rel="noopener">Open the patient portal</a>';
+  h += '<a class="btn btn--outline" href="' + PORTAL + '" target="_blank" rel="noopener">Visit Rejuv Men's Health</a>';
   h += '</div>';
 
   h += sechead("Hours");
@@ -913,12 +916,12 @@ function renderClinic() {
   h += '<div class="card" id="settingsCard"></div>';
 
   h += '<div class="card"><p class="finetext">' +
-    "<strong>This app does not give medical advice, diagnose anything, or decide what you are eligible for.</strong> " +
+    "<strong>This companion app does not give medical advice, diagnose anything, or decide what you are eligible for.</strong> " +
     "Messages are not monitored continuously and response times are not guaranteed. " +
     "For chest pain, trouble breathing, stroke symptoms, a severe allergic reaction or thoughts of suicide, call 911.</p>" +
     '<p class="finetext" style="margin-top:12px">Featured therapies are compounded and have not been approved or evaluated ' +
     "for safety, effectiveness or quality by the FDA. They are dispensed by state-licensed compounding pharmacies.</p>" +
-    '<p class="finetext" style="margin-top:12px">Rejuv Men\'s Health is a Promeniq Restorative Health partner practice.</p></div>';
+    '<p class="finetext" style="margin-top:12px">Rejuv Men\'s Health & Wellness is a Promeniq Restorative Health partner practice.</p></div>';
 
   $("#clinicBody").innerHTML = h;
   paintSettings();
@@ -1433,7 +1436,7 @@ document.addEventListener("click", function (e) {
   if (a === "push-on") return enablePush();
   if (a === "push-off") return disablePush();
   if (a === "signout") {
-    if (confirm("Remove Rejuv from this phone? You will need a new setup link from the clinic to use it again.")) signOut();
+    if (confirm("Remove this Rejuv app access from this phone? You will need a new setup link from the clinic to use it again.")) signOut();
     return;
   }
 });
@@ -1504,7 +1507,7 @@ async function boot() {
        they land here once and then never again. */
     if (st.passwordRequired) return showSetPassword(st.firstName, st.hasPassword);
     if (st.status === "rejected") { return gate(
-      '<p class="eyebrow">Rejuv Men\'s Health</p><h1 class="display">Call the clinic</h1>' +
+      '<p class="eyebrow">Rejuv Men\'s Health & Wellness</p><h1 class="display">Call the clinic</h1>' +
       '<p class="lede">We could not confirm this account. Text us on ' + esc(TEXT_LINE) + '.</p>' +
       '<a class="btn btn--primary" href="sms:' + dial(TEXT_LINE) + '">' + ARROW +
       "Text the clinic</a>" +
