@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Heartland coordinator console
+   Rejuv coordinator console
 
    Same language as the patient app and the presentation deck: warm paper
    ground, near-black ink, navy header bar under a gold rule, white panels.
@@ -17,18 +17,18 @@
   --body: "PT Sans", system-ui, -apple-system, sans-serif;
   --data: "Bai Jamjuree", ui-monospace, "SF Mono", monospace;
 
-  --navy: #21313B;
-  --navy-2: #25495C;
-  --gold: #B49243;
-  --gold-soft: #D4B266;
-  --gold-deep: #8D6E25;
-  --rust: #C66B3D;
-  --rust-dark: #974F2B;
-  --cream: #F7F3EB;
+  --navy: #242422;
+  --navy-2: #474640;
+  --gold: #C9B8A6;
+  --gold-soft: #E2D8CE;
+  --gold-deep: #9A8774;
+  --rust: #B8A594;
+  --rust-dark: #7D6D60;
+  --cream: #F4F1EC;
   --paper: #FFFFFF;
-  --ink: #0D0D0D;
-  --muted: #6B6B6B;
-  --line: #E3DDD0;
+  --ink: #242422;
+  --muted: #706C67;
+  --line: #DDD5CC;
   --good: #2E7D4F;
 
   --r: 8px;
@@ -204,7 +204,7 @@ body {
   background: var(--cream); border: 1px solid var(--line); color: var(--muted);
 }
 .tagline--urgent { background: #FDF2E2; border-color: #E8C89A; color: var(--rust-dark); }
-/* #8D6E25 on this fill is 4.33:1, which is a fail at 12.5px however bold it
+/* #9A8774 on this fill is 4.33:1, which is a fail at 12.5px however bold it
    is. Darkened just enough to clear 4.5 with the hue kept. */
 .tagline--warn { background: #FBF3E0; border-color: #E8D9A8; color: #876A24; }
 .tagline__dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
@@ -707,7 +707,7 @@ body {
        edge. Nothing like a veil: the picture keeps its own colour. */
     linear-gradient(rgba(10, 8, 6, var(--backdrop-veil)),
                     rgba(10, 8, 6, var(--backdrop-veil))),
-    url("img/backdrop.webp");
+    linear-gradient(135deg,#F4F1EC,#E8E1D9);
   background-size: auto, cover;
   background-position: center, center 22%;
   background-repeat: no-repeat;
@@ -905,9 +905,9 @@ body {
    WHY A PLAIN ALPHA IS NOT ENOUGH EITHER. Derived, not guessed: for text to
    clear 4.5:1 the surface under it needs a luminance of
 
-       --ink   #0D0D0D  ->  rgb(122)
-       --navy  #21313B  ->  rgb(150)
-       --muted #6B6B6B  ->  rgb(236)      <- the one that binds
+       --ink   #242422  ->  rgb(122)
+       --navy  #242422  ->  rgb(150)
+       --muted #706C67  ->  rgb(236)      <- the one that binds
 
    The lion bottoms out at true black, so a card thin enough to see through
    lands nowhere near rgb(236) and every small grey label in it fails long
@@ -996,7 +996,7 @@ body {
     .pcard:hover, .pcard:focus-within,
     .waitrow:hover, .waitrow:focus-within,
     .matchrow:hover, .matchrow:focus-within {
-      --muted: #6B6B6B;
+      --muted: #706C67;
       background-color: rgba(255, 255, 255, var(--glass-on));
       -webkit-backdrop-filter: blur(5px) brightness(1) saturate(1);
               backdrop-filter: blur(5px) brightness(1) saturate(1);
@@ -1017,3 +1017,6 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .card, .stat, .pcard, .waitrow, .matchrow { transition: none; }
 }
+
+/* Rejuv concept visual system */
+.rejuv-wordmark{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:500;letter-spacing:-.045em;color:#C9B8A6;font-size:22px;line-height:1}.rejuv-wordmark--lg{font-size:40px;color:#9A8774}.mark{display:none!important}
