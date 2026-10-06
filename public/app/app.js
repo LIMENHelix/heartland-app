@@ -523,12 +523,11 @@ function renderHome() {
   var hour = new Date().getHours();
   var greet = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
-  /* The photograph lives here. Everything below it sits on flat navy. */
+  /* Full-width welcome hero. */
   h += '<header class="hero2">' +
     '<p class="hero2__eyebrow">' + esc(greet) + "</p>" +
     '<h1 class="hero2__name">' + esc(HOME.firstName) + "</h1>" +
-    " &middot; " + HOME.vitality.discount + "% off</span></p>"
-      : "") +
+    '<p class="hero2__meta">Rejuv Men\'s Health &amp; Wellness</p>' +
     "</header>";
 
   /* --- labs: the thing they most need to know --- */
