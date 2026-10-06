@@ -2391,8 +2391,7 @@
     min-height: 16px;
   }
   /* Hide the app shell until the gate is satisfied. .gate-unlocked is
-     toggled on <body>
-<div style="background:#E2D8CE;color:#242422;padding:8px 16px;text-align:center;font:600 12px/1.4 Arial,sans-serif;letter-spacing:.03em">Concept demo — pricing and treatment details require Rejuv approval before patient use.</div> by the inline script that checks the password. */
+     toggled on <body> by the inline script that checks the password. */
   body:not(.gate-unlocked) > header,
   body:not(.gate-unlocked) > .disclaimer-banner,
   body:not(.gate-unlocked) > nav.page-tabs,
@@ -2998,7 +2997,54 @@
   }
   .stb-intro .lede { color: var(--ink); }
 
-  </style>
+  
+  /* Rejuv full-bleed visual treatment */
+  .rejuv-hero{
+    position:relative;
+    width:100%;
+    min-height:420px;
+    margin:0;
+    padding:0;
+    border:0;
+    border-radius:0;
+    overflow:hidden;
+    display:flex;
+    align-items:flex-end;
+    background:
+      url("https://irp.cdn-website.com/15c3a72d/dms3rep/multi/opt/pexels-photo-29526378-1920w.jpeg")
+      center 35% / cover no-repeat;
+  }
+  .rejuv-hero__scrim{
+    position:absolute; inset:0;
+    background:linear-gradient(90deg,rgba(24,24,22,.82) 0%,rgba(24,24,22,.5) 50%,rgba(24,24,22,.12) 100%);
+  }
+  .rejuv-hero__content{
+    position:relative; z-index:1;
+    width:min(1480px,100%);
+    margin:0 auto;
+    padding:64px 28px 52px;
+    color:#fff;
+  }
+  .rejuv-hero__brand{
+    font-family:Georgia,"Times New Roman",serif;
+    font-size:52px; font-style:italic;
+    letter-spacing:-.04em;
+    color:#E8DED4;
+    margin-bottom:8px;
+  }
+  .rejuv-hero h1{font-size:clamp(34px,6vw,64px);margin:0 0 12px;color:#fff;max-width:760px}
+  .rejuv-hero p{font-size:clamp(17px,2vw,23px);margin:0;max-width:700px;color:#F4F1EC}
+  body{background:#F4F1EC}
+  .panel{border-color:#DDD5CC}
+  .pricing-card{border-color:#D8CBBF}
+  .si-price,.tprice,.pcm-price,.downpay-row{display:none!important}
+  .rejuv-pricing-note .value{display:block!important}
+  .rejuv-pricing-note{margin-top:8px}
+  @media (max-width:700px){
+    .rejuv-hero{min-height:360px;background-position:center top}
+    .rejuv-hero__content{padding:44px 20px 34px}
+  }
+</style>
 </head>
 <body>
 
@@ -3099,7 +3145,7 @@
 
   <div class="plans-intro">
     <h1>Treatment Plans &amp; Bundle Catalog</h1>
-    <div class="lede">Browse the 2026 bundle catalog and assemble a treatment quote. Tap any plan card to add it to your selection; tap a tier button (1Y / 2Y / 3Y) to switch terms. Totals, financing options, and supporting evidence populate in the Your Selection summary below.</div>
+    <div class="lede">Explore treatment pathways and build a consultation plan. Final treatment recommendations and pricing are confirmed by the Rejuv clinical team after consultation and any required labs.</div>
   </div>
 
   <!-- ============================================================
@@ -3155,115 +3201,16 @@
           </div>
         </div>
 
-        <div class="pricing-row">
-          <div class="pricing-card">
-            <div class="label">Combined total</div>
-            <div class="value">$<span id="summary-total">0</span></div>
-            <div class="sub">across <span id="summary-count">0</span> plan(s)</div>
-          </div>
-          <div class="pricing-card accent">
-            <div class="label">12-Month Payment Plan</div>
-            <div class="value">$<span id="summary-12mo">0</span><span style="font-size:12px; opacity:0.7;">/mo</span></div>
-            <div class="sub">total financed over 12 months</div>
-          </div>
-          <div class="pricing-card accent">
-            <div class="label">24-Month Payment Plan</div>
-            <div class="value">$<span id="summary-24mo">0</span><span style="font-size:12px; opacity:0.7;">/mo</span></div>
-            <div class="sub">total financed over 24 months</div>
-          </div>
-          <div class="pricing-card accent" id="financing-36" style="display:none;">
-            <div class="label">36-Month Payment Plan</div>
-            <div class="value">$<span id="summary-36mo">0</span><span style="font-size:12px; opacity:0.7;">/mo</span></div>
-            <div class="sub">available with 3-year plans</div>
+        <div class="pricing-row rejuv-pricing-note">
+          <div class="pricing-card accent" style="grid-column:1/-1">
+            <div class="label">Rejuv pricing</div>
+            <div class="value" style="font-size:20px">Confirmed during consultation</div>
+            <div class="sub">Legacy Rejuv pricing has been removed. Treatment cost depends on the clinically appropriate plan selected by Rejuv.</div>
           </div>
         </div>
       </div>
     </div>
-
-    <div class="panel panel-collapsible is-collapsed" id="reported-timing-panel">
-      <h2>Reported timing of effects <span class="sub">median onset → typical max from clinical literature, for medications in this plan</span><span class="panel-chev">▼</span></h2>
-
-      <div class="evidence-glyph-key">◆ onset · ━━ ramp · ◆ typical max · ▷ continues beyond chart</div>
-
-      <div class="evidence-key">
-        <span><span class="swatch" style="background:var(--c-trt)"></span>TRT</span>
-        <span><span class="swatch" style="background:var(--c-eswt)"></span>ESWT / Intrapulse</span>
-        <span><span class="swatch" style="background:var(--c-glp)"></span>GLP-1 (weight loss)</span>
-      </div>
-
-      <svg class="evidence" id="evidence" preserveAspectRatio="none"></svg>
-
-      <div style="font-size:13px; color:#3a3a3a; margin-top:8px; line-height:1.55;">
-        Markers reflect median values reported in cited clinical literature for hypogonadal / target populations.
-        Confidence intervals around these timelines are wide. Some endpoints (bone density, body composition) continue improving
-        well beyond the visible window. Lab milestones reflect Endocrine Society monitoring guidance, not the timing of subjective response.
-      </div>
-    </div>
-
-    <div class="panel panel-collapsible is-collapsed" id="adjunctive-panel">
-      <h2>Adjunctive therapies in this plan <span class="sub">individual response · limited published symptom-timeline RCTs</span><span class="panel-chev">▼</span></h2>
-      <div id="adjunct-list"></div>
-    </div>
-
-    <div class="panel panel-collapsible is-collapsed" id="references-panel">
-      <h2>References <span class="sub">primary sources for the timing strip above</span><span class="panel-chev">▼</span></h2>
-      <ol class="citations-list" id="citations-list"></ol>
-    </div>
-
   </section>
-
-</main>
-
-<section id="page-stb" class="tab-content">
-  <div class="stb-wrap">
-    <div class="stb-intro">
-      <h1>Sequenced Therapy Builder</h1>
-      <div class="lede">Builds a phased protocol from the plans selected on the <strong>Treatment Plans</strong> tab. Adjust each medication's start month and duration to architect when each layer activates and how they overlap. Switching to this tab auto-syncs from your current plan selection. You can also manually add medications that aren't in your selected plans.</div>
-    </div>
-
-    <div class="panel stb-controls">
-      <div class="stb-duration-row">
-        <label for="stb-current-date">Quote date:</label>
-        <input type="date" id="stb-current-date">
-        <span class="stb-divider"></span>
-        <label for="stb-total-months">Total protocol duration:</label>
-        <select id="stb-total-months">
-          <option value="6">6 months</option>
-          <option value="12" selected>12 months</option>
-          <option value="18">18 months</option>
-          <option value="24">24 months</option>
-          <option value="36">36 months</option>
-        </select>
-        <div class="stb-add-actions">
-          <button class="btn-stb backbone" data-add-role="base">+ Add Backbone</button>
-          <button class="btn-stb additive" data-add-role="additive">+ Add Additive</button>
-          <button class="btn-stb-clear" id="stb-clear">Clear all</button>
-        </div>
-      </div>
-
-      <div id="stb-add-menu" class="stb-add-menu" style="display:none;">
-        <div class="stb-add-menu-title" id="stb-add-menu-title">Choose a backbone medication</div>
-        <div class="stb-add-options" id="stb-add-options"></div>
-        <button class="btn-cancel" id="stb-cancel-add">Cancel</button>
-      </div>
-    </div>
-
-    <div class="panel panel-collapsible is-collapsed" id="stb-entries-panel">
-      <h2>Protocol entries <span class="sub" id="stb-entry-count">no medications added</span><span class="panel-chev">▼</span></h2>
-      <div id="stb-entries"></div>
-    </div>
-
-    <div class="panel panel-collapsible is-collapsed" id="stb-timeline-panel">
-      <h2>Visual timeline <span class="sub">colored bars show when each medication is active</span><span class="panel-chev">▼</span></h2>
-      <svg id="stb-gantt" class="stb-gantt"></svg>
-    </div>
-
-    <div class="panel panel-collapsible is-collapsed" id="stb-rationale-panel">
-      <h2>Sequencing rationale <span class="sub" id="stb-rationale-sub">why this build is sequenced this way — updates as the protocol changes</span><span class="panel-chev">▼</span></h2>
-      <div id="stb-rationale"></div>
-    </div>
-  </div>
-</section>
 
 <section id="page-medical-intake" class="tab-content active">
   <div class="intake-wrap">
