@@ -1,4 +1,4 @@
-/* Heartland Daily. Network first, same reasoning as the patient app: a stale
+/* Rejuv Daily. Network first, same reasoning as the patient app: a stale
    file that looks fine is worse than a slow one that is right. */
 var CACHE = "hmh-daily-v2";
 var SHELL = ["./", "index.html", "styles.css", "daily.js", "manifest.webmanifest",
@@ -19,7 +19,7 @@ self.addEventListener("activate", function (e) {
 self.addEventListener("push", function (e) {
   var d = {};
   try { d = e.data ? e.data.json() : {}; } catch (err) { d = {}; }
-  e.waitUntil(self.registration.showNotification(d.title || "Heartland", {
+  e.waitUntil(self.registration.showNotification(d.title || "Rejuv", {
     body: d.body || "", icon: "icons/icon-192.png", badge: "icons/icon-192.png",
     tag: d.tag || "hmh-daily", renotify: false, data: { url: d.url || "/daily/" }
   }));
