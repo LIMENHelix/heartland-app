@@ -23,7 +23,7 @@ var DRAFT = { energy: 0, mood: 0, sleep: 0, libido: 0, symptoms: [] };
    closes the app and loses all of it believing he recorded his day. */
 var SAVED = null;
 
-/* ---- clinic facts, from heartlandmenshealth.com ---- */
+/* ---- clinic facts, from rejuv-kc.com ---- */
 /* No general clinic number in the patient app. Patients reach their own named
    coordinator, or use the in-app question. The only number here is the priapism
    line, which is a genuine medical emergency. */
@@ -49,11 +49,9 @@ function dial(v) {
 
 var EMERGENCY = "844-981-4996";
 var TEXT_LINE = "913-431-2757";   /* clinic text line, everyone sees it */
-var PORTAL = "https://patientportal.advancedmd.com/150527/account/logon";
+var PORTAL = "https://www.rejuv-kc.com/mens-health";
 var CLINICS = [
-  { name: "Overland Park", addr: "4601 W. 109th St., Suite 325", city: "Overland Park, KS 66211" },
-  { name: "Independence", addr: "4911 S. Arrowhead Dr., Suite 304", city: "Independence, MO 64055" },
-  { name: "North Kansas City", addr: "4150 N. Mulberry Dr., Suite 140", city: "Kansas City, MO 64116" }
+  { name: "Men's Health & Wellness", addr: "645 State Rte 92", city: "Kearney, MO 64060" }
 ];
 
 /* ==========================================================================
@@ -529,9 +527,7 @@ function renderHome() {
   h += '<header class="hero2">' +
     '<p class="hero2__eyebrow">' + esc(greet) + "</p>" +
     '<h1 class="hero2__name">' + esc(HOME.firstName) + "</h1>" +
-    (HOME.vitality
-      ? '<p class="hero2__meta"><span class="hero2__badge">' + esc(HOME.vitality.label) +
-        " &middot; " + HOME.vitality.discount + "% off</span></p>"
+    " &middot; " + HOME.vitality.discount + "% off</span></p>"
       : "") +
     "</header>";
 
@@ -578,33 +574,6 @@ function renderHome() {
       (s <= 10 ? (callCoordinator("Call about a refill") ||
                   '<button class="btn btn--primary" data-act="ask">' + ARROW + "Ask for a refill</button>") : "") +
       "</div>";
-  }
-
-  /* --- Vitality Circle standing --- */
-  if (HOME.vitality) {
-    var v = HOME.vitality;
-    h += sechead("Vitality Circle");
-    h += '<button class="cream cardbtn" data-act="vitality" style="text-align:center">' +
-      '<p class="cream__label">Tier 0' + v.tierNumber + " &middot; your standing</p>" +
-      '<p class="cream__big">' + esc(v.label) + "</p>" +
-      '<p class="cream__sub" style="font-weight:700;color:var(--gold-soft)">' +
-        v.discount + "% off renewals, upgrades and add-ons</p>" +
-      (v.points != null
-        ? '<p class="cream__sub" style="margin-top:6px">' + v.points.toLocaleString() + " lifetime points</p>"
-        : "") +
-      '<hr class="cream__rule">' +
-      '<div class="tiers">' +
-      v.ladder.map(function (t) {
-        return '<span class="tier' + (t.current ? " is-on" : t.earned ? " is-earned" : "") + '">' +
-               esc(t.label) + '<span class="tier__d">' + t.discount + "%</span></span>";
-      }).join("") +
-      "</div>" +
-      (v.progress
-        ? '<p class="cream__sub" style="margin-top:14px">' + v.progress.pointsToGo.toLocaleString() +
-          " points to " + esc(v.progress.nextLabel) + "</p>"
-        : "") +
-      '<p class="cream__sub" style="margin-top:14px;color:var(--gold-soft);font-weight:700">See what you get &rarr;</p>' +
-      "</button>";
   }
 
   /* --- financing --- */
@@ -774,41 +743,6 @@ async function openMessage(id) {
     try { await api("/message-read", { id: m.id }); } catch (e) {}
     render();
   }
-}
-
-function sheetVitality() {
-  var v = HOME.vitality;
-  if (!v) return;
-  var h = '<p class="eyebrow">Tier 0' + v.tierNumber + "</p>";
-  h += '<p class="display" style="font-size:34px;margin-bottom:6px">' + esc(v.label) + "</p>";
-  h += '<p class="lede">Exclusive benefits, for life. Your points never expire and your tier never resets. ' +
-       "Once you have earned a tier you never move backward.</p>";
-
-  h += '<div class="cream" style="text-align:left">';
-  h += '<p class="cream__label">What you get at ' + esc(v.label) + "</p>";
-  h += '<ul style="margin:0;padding-left:20px;line-height:1.65">';
-  h += "<li><strong>" + v.discount + "%</strong> off renewals, upgrades and add-ons</li>";
-  v.universal.forEach(function (u) { h += "<li>" + esc(u) + "</li>"; });
-  if (v.trial) h += "<li>Annual free benefit: " + esc(v.trial) + "</li>";
-  if (v.treatments) h += "<li>Eligible treatments: " + esc(v.treatments) + "</li>";
-  h += "</ul></div>";
-
-  h += sechead("The whole ladder");
-  h += '<div class="card card--flush">';
-  v.ladder.forEach(function (t, i) {
-    h += '<div class="row row--static">' +
-      '<span class="rung' + (t.current ? " is-on" : t.earned ? " is-earned" : "") + '">' + (i + 1) + "</span>" +
-      '<div class="row__main"><div class="row__t">' + esc(t.label) +
-        (t.current ? '  <span class="nowbadge">You are here</span>' : "") + "</div>" +
-      '<div class="row__s">' + t.discount + "% off renewals, upgrades and add-ons</div></div></div>";
-  });
-  h += "</div>";
-
-  h += '<p class="small muted" style="margin-top:18px">You earn one point for every dollar you invest in your care, ' +
-       "across treatments, renewals and additional services.</p>";
-  h += '<p class="finetext" style="margin-top:14px">' + esc(v.footnote) + "</p>";
-  h += '<button class="btn btn--primary" data-act="ask" style="margin-top:20px">' + ARROW + "Ask about my tier</button>";
-  openSheet("Vitality Circle", h);
 }
 
 function sheetAsk() {
@@ -1496,7 +1430,6 @@ document.addEventListener("click", function (e) {
   if (a === "do-register") return doRegister();
   if (a === "pending-check") return checkPending();
   if (a === "set-password") return submitSetPassword();
-  if (a === "vitality") return sheetVitality();
   if (a === "study-search") return runStudySearch();
   if (a === "push-on") return enablePush();
   if (a === "push-off") return disablePush();
