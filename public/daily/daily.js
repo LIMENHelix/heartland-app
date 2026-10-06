@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Heartland Daily — the free app.
+   Rejuv Daily — the free app.
 
    For men who are not patients. Four nudges a day, and one question at the
    end of it.
@@ -77,7 +77,7 @@ async function post(path, body) {
     body: JSON.stringify(Object.assign({ key: deviceKey(), tz: tz() }, body || {}))
   });
   var d = await r.json().catch(function () { return {}; });
-  if (!r.ok) throw new Error(d.error || "Could not reach Heartland. Try again in a moment.");
+  if (!r.ok) throw new Error(d.error || "Could not reach Rejuv. Try again in a moment.");
   return d;
 }
 
@@ -141,7 +141,7 @@ function render() {
 /* First open. */
 function renderOnboard() {
   var h = '<div class="hero">' +
-    '<p class="eyebrow">Free, from Heartland Men\'s Health</p>' +
+    '<p class="eyebrow">Free, from Rejuv Men\'s Health</p>' +
     '<h1 class="h1">Pick your<br>battles.</h1>' +
     '<p class="lede">Four nudges a day and one question at the end of it. ' +
     "No account, nothing to fill in, free forever.</p></div>";
@@ -155,7 +155,7 @@ function renderOnboard() {
   });
   h += "</div>";
   h += '<button class="btn btn--primary btn--full" data-act="start">Start</button>';
-  h += '<p class="fine">Heartland Men\'s Health, Kansas City. This is general guidance, ' +
+  h += '<p class="fine">Rejuv Men\'s Health, Kansas City. This is general guidance, ' +
        "not medical advice, and using it does not make you a patient.</p>";
   $("#main").innerHTML = h;
 }
@@ -185,7 +185,7 @@ function renderToday() {
 
   if (state.news) {
     h += '<button class="newscard" data-act="news">' +
-      '<span class="newscard__tag">From Heartland</span>' +
+      '<span class="newscard__tag">From Rejuv</span>' +
       '<span class="newscard__t">' + esc(state.news.title) + "</span>" +
       '<span class="newscard__b">' + esc(state.news.teaser) + "</span>" +
       '<span class="newscard__cta">Read it →</span></button>';
@@ -247,7 +247,7 @@ function renderRate() {
   var saved = state.today || {};
   var h = '<div class="head"><h1 class="h1 h1--sm">Rate today</h1></div>';
   h += '<p class="lede lede--sm">Be honest. Nobody sees this, it is not a test, and it is ' +
-       "what decides which of these Heartland sends you next.</p>";
+       "what decides which of these Rejuv sends you next.</p>";
 
   state.rateFields.forEach(function (f) {
     var cur = draft[f.key] != null ? draft[f.key] : (Number(saved[f.key]) || 0);
@@ -297,7 +297,7 @@ function renderSetup() {
 
   if (!pushOn()) h += pushCard();
 
-  h += '<div class="card"><p class="h3">Heartland Men\'s Health</p>' +
+  h += '<div class="card"><p class="h3">Rejuv Men\'s Health</p>' +
     '<p class="muted">Low testosterone, weight, and sexual health. Kansas City.</p>' +
     '<a class="btn btn--outline btn--full" href="sms:' + dial(state.textLine) +
       '?&body=' + encodeURIComponent("Hi, I have some questions about getting started.") +
@@ -389,7 +389,7 @@ function showNews(id) {
       : "") +
     '<a class="btn btn--outline btn--full" style="margin-top:8px" href="sms:' +
       dial(state.textLine) + '?&body=' +
-      encodeURIComponent("Hi, I read " + n.title + " on the Heartland app.") + '">Text the clinic</a>');
+      encodeURIComponent("Hi, I read " + n.title + " on the Rejuv app.") + '">Text the clinic</a>');
 }
 
 /* The one place anything personal is taken, and only after he asked. */
@@ -436,7 +436,7 @@ function showSpecial() {
       esc(s.cta || "Have someone call me") + "</button>" +
     '<a class="btn btn--outline btn--full" style="margin-top:8px" href="sms:' +
       dial(state.textLine) + '?&body=' +
-      encodeURIComponent("Hi, I saw " + s.title + " on the Heartland app.") + '">Text instead</a>');
+      encodeURIComponent("Hi, I saw " + s.title + " on the Rejuv app.") + '">Text instead</a>');
 }
 
 /* ---- push ---- */
@@ -513,7 +513,7 @@ document.addEventListener("keydown", function (e) {
        which on a home-screen icon means force-quitting an app, and that is not
        a thing to ask of a man whose train went into a tunnel. */
     $("#main").innerHTML = '<div class="card"><p class="h3">No connection</p>' +
-      '<p class="muted">Could not reach Heartland just now. Your times and your scores ' +
+      '<p class="muted">Could not reach Rejuv just now. Your times and your scores ' +
       "are safe on our side, nothing is lost.</p>" +
       '<button class="btn btn--primary btn--full" data-act="retry">Try again</button></div>';
   }
