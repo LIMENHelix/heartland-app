@@ -59,7 +59,7 @@ self.addEventListener("push", function (event) {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || "Heartland", options).then(function () {
+    self.registration.showNotification(data.title || "Rejuv", options).then(function () {
       return self.clients.matchAll({ type: "window", includeUncontrolled: true })
         .then(function (list) { list.forEach(function (c) { c.postMessage({ type: "refresh" }); }); });
     })
