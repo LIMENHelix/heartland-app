@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Heartland API — one Vercel serverless function behind /api/*.
+   Rejuv API — one Vercel serverless function behind /api/*.
 
      /api/admin/*   coordinator API, session-cookie auth
      /api/p/*       patient API, bearer token issued at enrolment
@@ -36,7 +36,7 @@ function getVapid() {
     }
     return {
       publicKey: pub, privateKey: priv,
-      subject: process.env.HMH_VAPID_SUBJECT || "mailto:care@heartlandmenshealth.com"
+      subject: process.env.HMH_VAPID_SUBJECT || "mailto:care@rejuv-kc.com"
     };
   })().catch(function (e) { vapidPromise = null; throw e; });
   return vapidPromise;
@@ -236,9 +236,9 @@ async function pushToPatient(patientId, payload) {
    auth inside the app; the notification itself is deliberately vague. */
 function notificationPayload(msg) {
   return {
-    title: "Heartland",
+    title: "Rejuv",
     body: msg.kind === "refill" ? "A refill reminder from your care team"
-        : msg.kind === "marketing" ? "An update from Heartland"
+        : msg.kind === "marketing" ? "An update from Rejuv"
         : "A message from your care team",
     tag: "hmh-msg-" + msg.id,
     url: "/app/?m=" + msg.id
@@ -1834,7 +1834,7 @@ const routes = {
     if (!term) return send(res, 400, { error: "Type something to search for." });
 
     const ident = "tool=heartland-patient-app&email=" +
-      encodeURIComponent(process.env.HMH_NCBI_EMAIL || "care@heartlandmenshealth.com");
+      encodeURIComponent(process.env.HMH_NCBI_EMAIL || "care@rejuv-kc.com");
     const base = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/";
 
     try {
