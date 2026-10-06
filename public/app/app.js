@@ -892,7 +892,7 @@ function renderClinic() {
   h += callCoordinator(null, "btn--outline");
   h += emailCoordinator("btn--outline");
   h += '<a class="btn btn--outline" href="sms:' + dial(TEXT_LINE) + '">Text the clinic on ' + TEXT_LINE + "</a>";
-  h += '<a class="btn btn--outline" href="' + PORTAL + '" target="_blank" rel="noopener">Visit Rejuv Men's Health</a>';
+  h += '<a class="btn btn--outline" href="' + PORTAL + '" target="_blank" rel="noopener">Visit Rejuv Men\'s Health</a>';
   h += '</div>';
 
   h += sechead("Hours");
