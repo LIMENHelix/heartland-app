@@ -19,18 +19,18 @@
   --data: "Bai Jamjuree", ui-monospace, "SF Mono", monospace;
 
   /* the deck's palette, verbatim */
-  --navy: #242422;
-  --navy-2: #474640;
-  --gold: #C9B8A6;
-  --gold-soft: #E2D8CE;
-  --gold-deep: #9A8774;
-  --rust: #B8A594;
-  --rust-dark: #7D6D60;
-  --cream: #F4F1EC;
+  --navy: #2F302D;
+  --navy-2: #555750;
+  --gold: #C7B6A4;
+  --gold-soft: #E3D8CD;
+  --gold-deep: #927E6A;
+  --rust: #B9A390;
+  --rust-dark: #806E60;
+  --cream: #F5F1EC;
   --paper: #FFFFFF;
-  --ink: #242422;
-  --muted: #706C67;
-  --line: #DDD5CC;
+  --ink: #252623;
+  --muted: #6E6B66;
+  --line: #DDD4CA;
 
   --r: 8px;
   --r-lg: 14px;
@@ -995,7 +995,7 @@ main {
   background-image:
     linear-gradient(rgba(10, 8, 6, var(--backdrop-veil)),
                     rgba(10, 8, 6, var(--backdrop-veil))),
-linear-gradient(135deg,#F4F1EC,#E8E1D9);
+url("img/backdrop.webp");
   background-size: auto, cover;
   background-position: center, center 20%;
   background-repeat: no-repeat;
@@ -1118,7 +1118,7 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty,
     .card:hover, .card:focus-within,
     .study:hover, .study:focus-within,
     .cite:hover, .cite:focus-within {
-      --muted: #706C67;
+      --muted: #6E6B66;
       background-color: rgba(255, 255, 255, var(--glass-on));
       -webkit-backdrop-filter: blur(5px) brightness(1) saturate(1);
               backdrop-filter: blur(5px) brightness(1) saturate(1);
@@ -1137,5 +1137,108 @@ main > .eyebrow, main > .h1, main > .sub, main > p, main > .empty,
   .card, .study, .cite { transition: none; }
 }
 
-/* Rejuv concept visual system */
-.rejuv-wordmark{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:500;letter-spacing:-.045em;color:#C9B8A6;font-size:22px;line-height:1}.rejuv-wordmark--lg{font-size:40px;color:#9A8774}.mark{display:none!important}
+/* ==========================================================================
+   Rejuv companion-app presentation layer.
+   The photograph is a page background on every screen, never a panel image.
+   ========================================================================== */
+html, body { min-height: 100%; }
+body {
+  background: #252623 url("img/backdrop.webp") center center / cover fixed no-repeat !important;
+  position: relative;
+}
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(180deg, rgba(30,31,29,.30), rgba(30,31,29,.52)),
+    url("img/backdrop.webp") center center / cover no-repeat;
+}
+.backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background:
+    linear-gradient(180deg, rgba(30,31,29,.28), rgba(30,31,29,.50)),
+    url("img/backdrop.webp") center center / cover no-repeat !important;
+  z-index: 0 !important;
+}
+main, .topbar, .tabbar, .sidenav, .setup { position: relative; z-index: 1; }
+
+.setup {
+  min-height: 100dvh !important;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+  background:
+    linear-gradient(180deg, rgba(26,27,25,.24), rgba(26,27,25,.58)),
+    url("img/hero-1600.webp") center center / cover no-repeat !important;
+}
+.setup__inner {
+  width: min(100%, 520px);
+  background: rgba(245,241,236,.90) !important;
+  border: 1px solid rgba(255,255,255,.48);
+  box-shadow: 0 24px 80px rgba(0,0,0,.30);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.access-kicker {
+  margin: 0 0 7px;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: .16em;
+  color: var(--navy);
+}
+.access-note {
+  margin: 0 0 22px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+.card, .cream, .notice, .sheet__panel {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.card {
+  background: rgba(255,255,255,.90) !important;
+}
+.cream {
+  background: rgba(47,48,45,.88) !important;
+}
+.hero2 {
+  min-height: 360px !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  margin-left: calc(-1 * var(--pad)) !important;
+  width: calc(100% + (2 * var(--pad))) !important;
+  background:
+    linear-gradient(180deg, rgba(22,23,21,.08), rgba(22,23,21,.58)),
+    url("img/hero-1600.webp") center center / cover no-repeat !important;
+  display: flex !important;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+.topbar {
+  background: rgba(47,48,45,.92) !important;
+  border-bottom-color: #C7B6A4 !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.topbar__brand span { color:#fff; }
+.hero2__badge {
+  background: rgba(245,241,236,.92) !important;
+  color: #2F302D !important;
+}
+@media (max-width: 700px) {
+  body, body::before, .backdrop {
+    background-position: center top !important;
+  }
+  .hero2 {
+    min-height: 46vh !important;
+    background-position: center top !important;
+  }
+}
