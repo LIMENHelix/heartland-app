@@ -6,7 +6,7 @@
    correct matters more than shaving milliseconds, and the cache is still there
    as a fallback when the phone is offline. */
 
-var CACHE = "rejuv-app-v20";
+var CACHE = "rejuv-app-v21";
 
 var SHELL = [
   "./",
