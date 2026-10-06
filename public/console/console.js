@@ -24,7 +24,7 @@ let UNASSIGNED = 0;
 /* Which panel the console is looking at. A coordinator only ever has their
    own, so this is inert for them; an admin uses it to sit in someone's seat. */
 let PANEL = "";
-let LISTS = { vitalityTiers: [], lenders: [], textLine: "" };
+let LISTS = { lenders: [], textLine: "" };
 
 /* ---- dom ---- */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -891,52 +891,6 @@ function patientModal(id) {
       }).join("") + "</select>" +
     '<span class="field__h">This is the name and number the patient sees in their app. If no direct line is set, the app shows no phone button at all.</span>');
 
-  h += field("Vitality Circle standing",
-    '<select class="select" data-f="vitality_status"><option value="">Not in the Circle</option>' +
-      LISTS.vitalityTiers.map(function (t) {
-        var on = String(p.vitality_status || "").toLowerCase() === t.key ||
-                 String(p.vitality_status || "").toLowerCase() === t.label.toLowerCase();
-        return '<option value="' + t.key + '"' + (on ? " selected" : "") + ">" +
-               esc(t.label) + " · " + t.discount + "% off</option>";
-      }).join("") + "</select>" +
-    '<span class="field__h">The patient sees their rung, the discount and the benefits. Leave blank to hide the card.</span>');
-
-  h += field("Lifetime Vitality points",
-    '<input class="input" type="number" min="0" data-f="vitality_points" value="' + esc(p.vitality_points == null ? "" : p.vitality_points) + '" placeholder="1 point per dollar invested">' +
-    '<span class="field__h">Optional. Shown to the patient as their lifetime total. Once the tier thresholds are set in the code, the rung is worked out from this automatically.</span>');
-
-  h += '<p class="eyebrow" style="margin:22px 0 10px">Financing</p>';
-  h += '<div class="grid2">' +
-    field("Lender", (function () {
-      var cur = p.lender_name || "";
-      var known = LISTS.lenders.indexOf(cur) !== -1;
-      return '<select class="select" data-f="lender_name"><option value="">Not financed</option>' +
-        LISTS.lenders.map(function (l) {
-          return '<option value="' + esc(l) + '"' + (cur === l ? " selected" : "") + ">" + esc(l) + "</option>";
-        }).join("") +
-        (cur && !known ? '<option value="' + esc(cur) + '" selected>' + esc(cur) + " (not on the list)</option>" : "") +
-        "</select>";
-    })()) +
-    field("Lender phone", '<input class="input" data-f="lender_phone" value="' + esc(p.lender_phone || "") + '">') +
-  "</div>";
-  h += field("Lender account link", '<input class="input" data-f="lender_url" value="' + esc(p.lender_url || "") + '" placeholder="https://...">');
-  h += '<div class="grid2">' +
-    field("Monthly payment", '<input class="input" data-f="payment_amount" value="' + esc(p.payment_amount || "") + '" placeholder="e.g. 189">') +
-    field("Due on day of month", '<input class="input" type="number" min="1" max="31" data-f="payment_due_day" value="' + esc(p.payment_due_day == null ? "" : p.payment_due_day) + '">') +
-  "</div>";
-  h += '<p class="field__h" style="margin:-8px 0 18px">The app works out the next due date from that day each month. Nothing is pulled from the lender, so keep it current.</p>';
-
-  h += field("Add-ons they may be interested in",
-    '<textarea class="textarea" data-f="addons" style="min-height:70px" placeholder="e.g. IntraPulse course, GLP-1">' + esc(p.addons || "") + "</textarea>" +
-    '<span class="field__h">Coordinator note only. Patients do not see this. To raise it with them, send a message and label it promotional.</span>');
-
-  h += field("Last visit", '<input class="input" type="date" data-f="last_visit_at" value="' + toDateInput(p.last_visit_at) + '">');
-  h += '<div class="grid2">' +
-    field("Medication dispensed on", '<input class="input" type="date" data-f="supply_started_at" value="' + toDateInput(p.supply_started_at) + '">') +
-    field("Days of supply", '<input class="input" type="number" min="0" data-f="supply_days" value="' + esc(p.supply_days == null ? "" : p.supply_days) + '">') +
-  "</div>";
-  h += '<p class="field__h" style="margin:-8px 0 16px">Those two together drive the "running out" reminder.</p>';
-
   h += field("Notes", '<textarea class="textarea" data-f="notes" style="min-height:90px">' + esc(p.notes || "") + "</textarea>");
   h += '<label class="check"><input type="checkbox" data-f="pinned"' + (p.pinned ? " checked" : "") + '> <span>Pin to the top of today\'s list</span></label>';
 
@@ -1563,10 +1517,7 @@ async function patientView(id) {
   /* ---- his home screen ---- */
   out += '<div class="pvphone"><div class="pvscreen">';
   out += '<p class="pvgreet">' + esc(h.firstName || p.first_name || "") + "</p>";
-  if (h.vitality) {
-    out += '<span class="pvbadge">' + esc(h.vitality.label) + " \u00b7 " + h.vitality.discount + "% off</span>";
-  }
-  out += '<div class="pvrows">';
+out += '<div class="pvrows">';
   out += pvRow("His coordinator", h.coordinator
     ? esc(h.coordinator.name) + (h.coordinator.phone ? " \u00b7 " + esc(h.coordinator.phone) : "") +
       (h.coordinator.email ? " \u00b7 " + esc(h.coordinator.email) : "")
