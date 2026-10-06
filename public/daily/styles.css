@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Heartland Daily.
+   Rejuv Daily.
 
    Same palette and primitives as the patient app so the two look like one
    company, but a different shape: this one has no tabs, no record, and nothing
@@ -12,18 +12,18 @@
   --data: "Bai Jamjuree", ui-monospace, "SF Mono", monospace;
 
   /* the deck's palette, verbatim */
-  --navy: #21313B;
-  --navy-2: #25495C;
-  --gold: #B49243;
-  --gold-soft: #D4B266;
-  --gold-deep: #8D6E25;
-  --rust: #C66B3D;
-  --rust-dark: #974F2B;
-  --cream: #F7F3EB;
+  --navy: #242422;
+  --navy-2: #474640;
+  --gold: #C9B8A6;
+  --gold-soft: #E2D8CE;
+  --gold-deep: #9A8774;
+  --rust: #B8A594;
+  --rust-dark: #7D6D60;
+  --cream: #F4F1EC;
   --paper: #FFFFFF;
-  --ink: #0D0D0D;
-  --muted: #6B6B6B;
-  --line: #E3DDD0;
+  --ink: #242422;
+  --muted: #706C67;
+  --line: #DDD5CC;
 
   --r: 8px;
   --r-lg: 14px;
@@ -276,7 +276,7 @@ main {
   background-color: var(--cream);
   background-image:
     linear-gradient(rgba(247,243,235,.55), rgba(247,243,235,.55)),
-    url("img/backdrop.webp");
+    linear-gradient(135deg,#F4F1EC,#E8E1D9);
   background-size: auto, min(100%, 1280px) auto;
   background-position: center, center bottom;
   background-repeat: no-repeat;
@@ -573,7 +573,7 @@ main {
    ========================================================================== */
 
 :root {
-  --ink-d:    #0B0F12;   /* the ground */
+  --ink-d:    #242422;   /* the ground */
   --panel-d:  #141B21;   /* cards */
   --line-d:   #26313A;
   --text-d:   #F2EFE9;
@@ -610,7 +610,7 @@ body { background: var(--ink-d); color: var(--text-d); }
                            rgba(11,15,18,.66) 72%, rgba(11,15,18,.12) 100%),
     linear-gradient(180deg, rgba(11,15,18,.30) 0%, rgba(11,15,18,.55) 45%,
                             rgba(11,15,18,.94) 74%, var(--ink-d) 89%),
-    url("img/backdrop.webp");
+    linear-gradient(135deg,#F4F1EC,#E8E1D9);
   background-size: auto, auto, cover;
   background-position: center, center, center 18%;
   background-repeat: no-repeat, no-repeat, no-repeat;
@@ -808,7 +808,7 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
                            rgba(11,15,18,.80) 74%, rgba(11,15,18,.42) 100%),
     linear-gradient(180deg, rgba(11,15,18,.55) 0%, rgba(11,15,18,.78) 40%,
                             rgba(11,15,18,.97) 68%, var(--ink-d) 84%),
-    url("img/backdrop.webp");
+    linear-gradient(135deg,#F4F1EC,#E8E1D9);
 }
 
 
@@ -882,7 +882,7 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
                              rgba(11,15,18,.28) 72%, rgba(11,15,18,0) 100%),
       linear-gradient(180deg, rgba(11,15,18,.18) 0%, rgba(11,15,18,.40) 40%,
                               rgba(11,15,18,.80) 70%, var(--ink-d) 92%),
-      url("img/backdrop.webp");
+      linear-gradient(135deg,#F4F1EC,#E8E1D9);
   }
 }
 
@@ -915,7 +915,7 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 
        --text-d #F2EFE9  ->  rgb(109)
        --dim-d  #9AA7B1  ->  rgb(59)
-       --gold   #B49243  ->  rgb(47)      <- the one that binds
+       --gold   #C9B8A6  ->  rgb(47)      <- the one that binds
 
    The first version of this used contrast(.40) to crush the photograph into
    a flat band. Every ratio passed and the lion stopped being visible, which
@@ -964,7 +964,7 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
     .special:hover, .special:focus-within,
     .rate:hover, .rate:focus-within,
     .lede--sm:hover, .lede--sm:focus-within {
-      --gold: #B49243;
+      --gold: #C9B8A6;
       background-color: rgba(11, 15, 18, var(--glass-on));
       background-image: none;
       -webkit-backdrop-filter: blur(5px) brightness(1) saturate(1.25);
@@ -986,3 +986,6 @@ main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-motion: reduce) {
   .card, .goal, .prompt, .newscard, .special, .rate, .lede--sm { transition: none; }
 }
+
+/* Rejuv concept visual system */
+.rejuv-wordmark{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-weight:500;letter-spacing:-.045em;color:#C9B8A6;font-size:22px;line-height:1}.mark{display:none!important}
