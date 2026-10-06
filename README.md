@@ -20,7 +20,7 @@ Deployed to Vercel project `heartland-deploy` under the **limen-helix** team, wi
 Postgres database (`Limen_Heartland_app`). Brand and clinical content come from
 `HMH_BRAND_AND_CONTENT_SPEC.md`, harvested from heartlandmenshealth.com on 2026-07-30.
 
-Demo sign-in: username `sample` / password `rejuv`.
+Demo sign-in: email `men@trt.com` / password `sample`.
 **Change that password before anyone real uses this.**
 
 ---
@@ -257,7 +257,7 @@ at the rendered page, not the status code of the document.
 
 ## Not done yet
 
-- **Demo access is `sample` / `rejuv`.** Keep this limited to seeded/demo data only.
+- **Demo access is `men@trt.com` / `sample`.** Keep this limited to seeded/demo data only.
 - **No automated sending.** Every message is a human pressing send. Given the HIPAA marketing
   line that is the right starting point; scheduled campaigns are the next step once compliance
   answers.
